@@ -1,0 +1,14 @@
+ČASOVNICA SUZANA
+
+6.5.2026
+Pregled vseh zahtev in določitev funkcionalnosti za projekt
+Izdelava DPU diagrama v draw.io
+
+9.5.2026
+Izdelava osnovnega okolja (vite/react) za frontend
+Delanje v lokalnem okolju in prikaz
+"Dummy podatki" uporabljeni za prikazovanje
+
+10.5
+Izdelava časovnic in pushanje v github
+Organizacija map, branchov in skupine 
