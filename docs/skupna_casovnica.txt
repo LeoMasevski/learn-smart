@@ -1,0 +1,27 @@
+ČASOVNICA SKUPINE
+
+2.5.2026
+Odgovor profesorja za odobreno vizijo in dodelitev skrbnice Maje Pušnik
+
+3.5.2026
+Poslan email z končno verzijo vizije in določitev termina prvega sestanka 7.5 ob 13 v seminarski sobi.
+Delo prvi teden: DPU, vzpostavitev githuba, osnovna arhitektura rešitve, generirana figma
+
+7.5.2026
+Sestanek z mentorico, določitev vseh nadaljnih sestankov (14.5 ob 13.00, 20.5 ob 14.00 in 29.5 ob 9.00)
+Dogovor do 14.5:
+- SZPO
+- Kanban
+- Časovnice
+- Priprava razvojnega okolja
+- Osnovna grafična podoba
+- Baza in backend
+
+14.5. 2026
+še pride
+
+20.5.2026
+še pride
+
+29.5.2026
+še pride
