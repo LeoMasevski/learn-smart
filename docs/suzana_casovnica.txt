@@ -12,3 +12,6 @@ Delanje v lokalnem okolju in prikaz
 10.5
 Izdelava časovnic in pushanje v github
 Organizacija map, branchov in skupine 
+
+13.5
+Delanje ER diagrama za bazo
