@@ -1,10 +1,11 @@
 import { Router } from "express";
+import { requireAuth } from "../../middleware/auth.middleware";
 
 const router = Router();
 
-router.get("/", (_req, res) => {
+router.get("/", requireAuth, (_req, res) => {
   res.json({
-    message: "User routes are working",
+    message: "User routes are protected and working",
   });
 });
 
