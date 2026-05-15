@@ -1,41 +1,40 @@
 import { Router } from "express";
-
 import {
-  handleGetAllLessons,
-  handleGetLessonById,
-  handleCreateLesson,
-  handleUpdateLesson,
-  handleDeleteLesson,
-} from "./lesson.controller";
+  handleGetAllSubjects,
+  handleGetSubjectById,
+  handleCreateSubject,
+  handleUpdateSubject,
+  handleDeleteSubject,
+} from "./subject.controller";
 
 import { requireAuth } from "../../middleware/auth.middleware";
 import { requireRole } from "../../middleware/role.middleware";
 
 const router = Router();
 
-router.get("/", handleGetAllLessons);
+router.get("/", handleGetAllSubjects);
 
-router.get("/:id", handleGetLessonById);
+router.get("/:id", handleGetSubjectById);
 
 router.post(
   "/",
   requireAuth,
   requireRole(["PROFESSOR"]),
-  handleCreateLesson
+  handleCreateSubject
 );
 
 router.put(
   "/:id",
   requireAuth,
   requireRole(["PROFESSOR"]),
-  handleUpdateLesson
+  handleUpdateSubject
 );
 
 router.delete(
   "/:id",
   requireAuth,
   requireRole(["PROFESSOR"]),
-  handleDeleteLesson
+  handleDeleteSubject
 );
 
 export default router;

@@ -1,1 +1,29 @@
 ČASOVNICA LEO
+
+6.5.2026
+Pregled zahtev projekta in sodelovanje pri načrtovanju funkcionalnosti
+Pomoč pri določanju arhitekture sistema in organizacije projekta
+
+9.5.2026
+Vzpostavitev GitHub repozitorija, branch strategije in osnovne organizacije backend projekta
+Inicializacija backend okolja z Node.js, Express in TypeScript
+
+10.5.2026
+Konfiguracija razvojnega okolja za backend
+Dodajanje .gitignore, .env konfiguracije in modularne strukture projekta
+
+11.5.2026
+Vzpostavitev Supabase projekta in povezave z backendom
+Konfiguracija avtentikacije in povezava s PostgreSQL bazo
+
+12.5.2026
+Implementacija registracije, prijave in zaščitenih endpointov
+Dodajanje role-based avtorizacije za profesorja in študenta
+
+14.5.2026
+Implementacija CRUD funkcionalnosti za predmete in lekcije
+Testiranje endpointov preko Postmana
+
+15.5.2026
+Posodobitev SZPO dokumentacije glede na dejansko arhitekturo sistema
+Organizacija backend arhitekture routes/controllers/services in priprava za AI generiranje lekcij
