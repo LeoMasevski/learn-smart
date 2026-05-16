@@ -1,35 +1,55 @@
-import type { ProfessorSubject } from "../../pages/ProfessorDashboard";
+import type { Subject } from "../../types/professor";
 
 type Props = {
-  subject: ProfessorSubject;
-  onOpen: (subject: ProfessorSubject) => void;
+  subject: Subject;
+  onOpen: (subject: Subject) => void;
+  onEdit: (subject: Subject) => void;
+  onDelete: (id: string) => void;
 };
 
-const ProfessorSubjectCard = ({ subject, onOpen }: Props) => {
+const ProfessorSubjectCard = ({
+  subject,
+  onOpen,
+  onEdit,
+  onDelete,
+}: Props) => {
   return (
-    <div
-      className="professor-subject-card"
-      onClick={() => onOpen(subject)}
-    >
-      <div
-        className="professor-subject-cover"
-        style={{ background: subject.color }}
-      >
-        <div className="professor-card-icon">📘</div>
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="h-32 bg-gradient-to-br from-violet-500 to-indigo-400 p-6 text-white">
+        <div className="text-4xl">📘</div>
       </div>
 
-      <div className="professor-subject-body">
-        <h3>{subject.title}</h3>
+      <div className="p-6">
+        <h2 className="text-xl font-bold text-slate-900">
+          {subject.name}
+        </h2>
 
-        <p>{subject.subtitle}</p>
+        <p className="mt-2 text-slate-500 min-h-12">
+          {subject.description || "Brez opisa predmeta."}
+        </p>
 
-        <div className="professor-mini-stats">
-          <span>{subject.students} študentov</span>
-          <span>{subject.presentations} prezentacij</span>
-          <span>{subject.quizzes} kvizov</span>
+        <div className="flex gap-2 mt-6">
+          <button
+            onClick={() => onOpen(subject)}
+            className="flex-1 bg-violet-600 text-white py-2 rounded-xl font-semibold hover:bg-violet-700"
+          >
+            Odpri
+          </button>
+
+          <button
+            onClick={() => onEdit(subject)}
+            className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200"
+          >
+            Uredi
+          </button>
+
+          <button
+            onClick={() => onDelete(subject.id)}
+            className="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-semibold hover:bg-red-100"
+          >
+            Briši
+          </button>
         </div>
-
-        <button>Odpri predmet</button>
       </div>
     </div>
   );

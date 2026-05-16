@@ -1,86 +1,34 @@
-import type { ProfessorSubject } from "../../pages/ProfessorDashboard";
-
-type ActiveTab = "vsebine" | "ocene" | "komentarji" | "analitika";
+import type { Subject } from "../../types/professor";
 
 type Props = {
-  selectedSubject: ProfessorSubject | null;
-  activeTab: ActiveTab;
-  setActiveTab: (tab: ActiveTab) => void;
+  selectedSubject: Subject | null;
   goHome: () => void;
 };
 
-const ProfessorSidebar = ({
-  selectedSubject,
-  activeTab,
-  setActiveTab,
-  goHome,
-}: Props) => {
+const ProfessorSidebar = ({ selectedSubject, goHome }: Props) => {
   return (
-    <aside className="professor-sidebar">
-      <h1 className="professor-logo" onClick={goHome}>
+    <aside className="w-72 bg-white border-r border-slate-200 p-6">
+      <h1
+        onClick={goHome}
+        className="text-2xl font-bold text-violet-700 cursor-pointer mb-10"
+      >
         🎓 LearnSmart
       </h1>
 
-      {!selectedSubject ? (
-        <>
-          <p className="professor-active-menu">▦ Moji predmeti</p>
-          <div className="professor-sidebar-divider"></div>
-          <p className="professor-menu-item">👤 Profil</p>
-        </>
-      ) : (
-        <>
-        <p
-  className="professor-back-text"
-  onClick={goHome}
->
-  ← Nazaj na predmete
-</p>
-<div className="professor-sidebar-divider"></div>
+      <button
+        onClick={goHome}
+        className="w-full text-left bg-violet-50 text-violet-700 px-4 py-3 rounded-xl font-semibold"
+      >
+        ▦ Moji predmeti
+      </button>
 
-          <p
-            className={
-              activeTab === "vsebine"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("vsebine")}
-          >
-            📚 Vsebine
+      {selectedSubject && (
+        <div className="mt-5 bg-slate-50 rounded-xl p-4">
+          <p className="text-sm text-slate-500">Aktiven predmet</p>
+          <p className="font-semibold text-slate-900">
+            {selectedSubject.name}
           </p>
-
-          <p
-            className={
-              activeTab === "ocene"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("ocene")}
-          >
-            📊 Ocene
-          </p>
-
-          <p
-            className={
-              activeTab === "komentarji"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("komentarji")}
-          >
-            💬 Komentarji
-          </p>
-
-          <p
-            className={
-              activeTab === "analitika"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("analitika")}
-          >
-            📈 Analitika
-          </p>
-        </>
+        </div>
       )}
     </aside>
   );
