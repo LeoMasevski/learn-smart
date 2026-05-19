@@ -28,9 +28,9 @@ const SubjectFormModal = ({ subject, onClose, onSaved }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-xl">
-        <h2 className="text-2xl font-bold mb-6">
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-xl shadow-xl">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">
           {subject ? "Uredi predmet" : "Dodaj predmet"}
         </h2>
 
