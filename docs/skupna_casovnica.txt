@@ -18,10 +18,21 @@ Dogovor do 14.5:
 - Baza in backend
 
 14.5. 2026
-še pride
+Sestanek
+Do naslednič:
+- Čim več funkcionalnosti
+- Da pridemo do čim bolj končnega delanja
+- AI da dela stvari
+- Prijava/Registracija c
+- Idealno VSE osnovne funkcionalnosti
+- (če ostane čas lahko testiramo) - uporabniško testiranje (sošolec poklika ali nekaj)
+- Matrika znanj (pod dokumentacijo, v čem je kdo dober, zakaj dela kdo)
+- VCAG, preverjanje dostopnosti
+- Naša omejitev da npr če kdo slabše vidi 
 
 20.5.2026
-še pride
+Poslan mail za trenutne funkcionalnosti
+Določitev da se ne dobimo da samo funkcionalnosti zrihtamo do nasledjič
 
 29.5.2026
 še pride
