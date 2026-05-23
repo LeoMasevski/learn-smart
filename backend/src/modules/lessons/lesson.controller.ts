@@ -40,7 +40,7 @@ export async function handleGetLessonById(req: Request, res: Response) {
 }
 
 export async function handleCreateLesson(req: Request, res: Response) {
-  const { subjectId, title, originalContent } = req.body;
+  const { subjectId, title, originalContent, aiInstructions } = req.body;
   const user = (req as any).user;
   const file = req.file;
 
@@ -49,6 +49,9 @@ export async function handleCreateLesson(req: Request, res: Response) {
       message: "subjectId and title are required",
     });
   }
+
+  const safeAiInstructions =
+    typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
 
   let finalContent = originalContent;
 
@@ -68,7 +71,8 @@ export async function handleCreateLesson(req: Request, res: Response) {
       subjectId,
       user.id,
       title,
-      finalContent
+      finalContent,
+      safeAiInstructions
     );
 
     if (lessonError || !lesson) {
@@ -82,7 +86,11 @@ export async function handleCreateLesson(req: Request, res: Response) {
     let aiError: string | null = null;
 
     try {
-      const variants = await generateLessonVariantsFromText(title, finalContent);
+      const variants = await generateLessonVariantsFromText(
+        title,
+        finalContent,
+        safeAiInstructions
+      );
 
       for (const variant of variants) {
         await createLessonVariant(
@@ -126,23 +134,28 @@ export async function handleCreateLesson(req: Request, res: Response) {
 
 export async function handleUpdateLesson(req: Request, res: Response) {
   const id = req.params.id as string;
-  const { subjectId, title, originalContent } = req.body;
+  const { subjectId, title, originalContent, aiInstructions } = req.body;
 
   if (
     subjectId === undefined &&
     title === undefined &&
-    originalContent === undefined
+    originalContent === undefined &&
+    aiInstructions === undefined
   ) {
     return res.status(400).json({
       message: "At least one field is required",
     });
   }
 
+  const safeAiInstructions =
+    typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : aiInstructions;
+
   const { data, error } = await updateLesson(
     id,
     subjectId,
     title,
-    originalContent
+    originalContent,
+    safeAiInstructions
   );
 
   if (error || !data) {
