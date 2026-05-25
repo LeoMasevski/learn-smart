@@ -10,19 +10,21 @@ import {
 
 import { requireAuth } from "../../middleware/auth.middleware";
 import { requireRole } from "../../middleware/role.middleware";
+import { uploadPdf } from "../../middleware/upload.middleware";
 
 const router = Router();
 
 router.get("/", handleGetAllLessons);
 
-router.get("/:id", handleGetLessonById);
-
 router.post(
   "/",
   requireAuth,
   requireRole(["PROFESSOR"]),
+  uploadPdf.single("file"),
   handleCreateLesson
 );
+
+router.get("/:id", handleGetLessonById);
 
 router.put(
   "/:id",
