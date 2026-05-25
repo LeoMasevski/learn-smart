@@ -1,87 +1,40 @@
-import type { ProfessorSubject } from "../../pages/ProfessorDashboard";
-
-type ActiveTab = "vsebine" | "ocene" | "komentarji" | "analitika";
+import type { Subject } from "../../types/professor";
 
 type Props = {
-  selectedSubject: ProfessorSubject | null;
-  activeTab: ActiveTab;
-  setActiveTab: (tab: ActiveTab) => void;
+  selectedSubject: Subject | null;
   goHome: () => void;
 };
 
-const ProfessorSidebar = ({
-  selectedSubject,
-  activeTab,
-  setActiveTab,
-  goHome,
-}: Props) => {
+const ProfessorSidebar = ({ selectedSubject, goHome }: Props) => {
   return (
-    <aside className="professor-sidebar">
-      <h1 className="professor-logo" onClick={goHome}>
+    <aside className="w-72 min-h-screen bg-white border-r border-slate-200 p-6">
+      <h1
+        onClick={goHome}
+        className="mb-10 cursor-pointer text-3xl font-extrabold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent"
+      >
         🎓 LearnSmart
       </h1>
 
-      {!selectedSubject ? (
-        <>
-          <p className="professor-active-menu">▦ Moji predmeti</p>
-          <div className="professor-sidebar-divider"></div>
-          <p className="professor-menu-item">👤 Profil</p>
-        </>
-      ) : (
-        <>
-        <p
-  className="professor-back-text"
-  onClick={goHome}
->
-  ← Nazaj na predmete
-</p>
-<div className="professor-sidebar-divider"></div>
+      <nav className="space-y-4">
+        <button
+          onClick={goHome}
+          className="w-full rounded-2xl bg-violet-50 px-5 py-4 text-left font-bold text-violet-700 hover:bg-violet-100 transition"
+        >
+          ▦ Moji predmeti
+        </button>
 
-          <p
-            className={
-              activeTab === "vsebine"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("vsebine")}
-          >
-            📚 Vsebine
-          </p>
+        {selectedSubject && (
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-sky-500 p-5 text-white shadow-lg">
+            <p className="text-sm text-violet-100">Aktiven predmet</p>
+            <h3 className="mt-1 font-bold">{selectedSubject.name}</h3>
+          </div>
+        )}
 
-          <p
-            className={
-              activeTab === "ocene"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("ocene")}
-          >
-            📊 Ocene
-          </p>
-
-          <p
-            className={
-              activeTab === "komentarji"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("komentarji")}
-          >
-            💬 Komentarji
-          </p>
-
-          <p
-            className={
-              activeTab === "analitika"
-                ? "professor-active-menu"
-                : "professor-menu-item"
-            }
-            onClick={() => setActiveTab("analitika")}
-          >
-            📈 Analitika
-          </p>
-        </>
-      )}
+        <div className="rounded-2xl bg-slate-50 p-5">
+          <p className="text-sm font-semibold text-slate-500">Profesor</p>
+          <p className="mt-1 font-bold text-slate-900">Upravljanje vsebin</p>
+        </div>
+      </nav>
     </aside>
   );
 };

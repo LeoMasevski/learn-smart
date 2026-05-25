@@ -1,331 +1,272 @@
-import { useState } from "react";
-import "../styles/ProfessorDashboard.css";
-import ProfessorAiBox from "../components/professor/ProfessorAiBox";
+import { useEffect, useState } from "react";
+import { api } from "../api/api";
+import type { Subject, Lesson } from "../types/professor";
 
 import ProfessorSidebar from "../components/professor/ProfessorSidebar";
-import ProfessorSubjectCard from "../components/professor/ProfessorSubjectCard";
-import ProfessorOverviewStrip from "../components/professor/ProfessorOverviewStrip";
-import ProfessorTabs from "../components/professor/ProfessorTabs";
-
-export type ProfessorSubject = {
-  title: string;
-  subtitle: string;
-  students: number;
-  presentations: number;
-  quizzes: number;
-  color: string;
-};
-
-type ActiveTab = "vsebine" | "ocene" | "komentarji" | "analitika";
+import SubjectFormModal from "../components/professor/SubjectFormModal";
+import LessonList from "../components/professor/LessonList";
+import LessonFormModal from "../components/professor/LessonFormModal";
 
 const ProfessorDashboard = () => {
-  const [selectedSubject, setSelectedSubject] =
-    useState<ProfessorSubject | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("vsebine");
-  const [uploadType, setUploadType] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
 
-  const [studentName, setStudentName] = useState("");
-  const [commentText, setCommentText] = useState("");
-  const [commentSent, setCommentSent] = useState(false);
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  const [lessonModalOpen, setLessonModalOpen] = useState(false);
 
-  const subjects: ProfessorSubject[] = [
-    {
-      title: "Programiranje",
-      subtitle: "React, komponente in frontend razvoj",
-      students: 42,
-      presentations: 6,
-      quizzes: 4,
-      color: "linear-gradient(135deg, #7c6cff, #a78bfa)",
-    },
-    {
-      title: "Podatkovne baze",
-      subtitle: "SQL, relacije in poizvedbe",
-      students: 38,
-      presentations: 8,
-      quizzes: 5,
-      color: "linear-gradient(135deg, #60a5fa, #a5b4fc)",
-    },
-    {
-      title: "Spletni sistemi",
-      subtitle: "Spletne aplikacije in arhitektura",
-      students: 31,
-      presentations: 5,
-      quizzes: 3,
-      color: "linear-gradient(135deg, #c084fc, #f0abfc)",
-    },
-  ];
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
-  const goHome = () => {
-    setSelectedSubject(null);
-    setActiveTab("vsebine");
+  const fetchSubjects = async () => {
+    const res = await api.get("/subjects");
+    setSubjects(res.data);
   };
 
-  const sendComment = () => {
-    if (!studentName.trim() || !commentText.trim()) {
-      alert("Vnesi ime študenta in komentar.");
-      return;
-    }
+  const fetchLessons = async () => {
+    const res = await api.get("/lessons");
+    setLessons(res.data);
+  };
 
-    setCommentSent(true);
-    setStudentName("");
-    setCommentText("");
+  useEffect(() => {
+    fetchSubjects();
+    fetchLessons();
+  }, []);
 
-    setTimeout(() => {
-      setCommentSent(false);
-    }, 3000);
+  const selectedLessons = lessons.filter(
+    (lesson) => lesson.subject_id === selectedSubject?.id
+  );
+
+  const openCreateSubject = () => {
+    setEditingSubject(null);
+    setSubjectModalOpen(true);
+  };
+
+  const openEditSubject = (subject: Subject) => {
+    setEditingSubject(subject);
+    setSubjectModalOpen(true);
+  };
+
+  const deleteSubject = async (id: string) => {
+    await api.delete(`/subjects/${id}`);
+    setSelectedSubject(null);
+    fetchSubjects();
+  };
+
+  const openCreateLesson = () => {
+    setEditingLesson(null);
+    setLessonModalOpen(true);
+  };
+
+  const openEditLesson = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setLessonModalOpen(true);
+  };
+
+  const deleteLesson = async (id: string) => {
+    await api.delete(`/lessons/${id}`);
+    fetchLessons();
   };
 
   return (
-    <div className="professor-page">
+    <div className="min-h-screen bg-slate-100 flex">
       <ProfessorSidebar
         selectedSubject={selectedSubject}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        goHome={goHome}
+        goHome={() => setSelectedSubject(null)}
       />
 
-      <main className="professor-main">
+      <main className="flex-1 p-8">
         {!selectedSubject ? (
           <>
-            <h1 className="professor-title">Profesor Dashboard</h1>
-            <ProfessorOverviewStrip />
+            <div className="mb-8 rounded-[32px] bg-white p-8 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-4xl font-semibold text-slate-900">
+                    Profesor Dashboard
+                  </h1>
 
-            <section className="professor-subject-grid">
-              {subjects.map((subject) => (
-                <ProfessorSubjectCard
-                  key={subject.title}
-                  subject={subject}
-                  onOpen={setSelectedSubject}
-                />
-              ))}
-            </section>
+                  <p className="mt-3 text-base text-slate-500">
+                    Upravljanje predmetov in učnega gradiva.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={openCreateSubject}
+                    className="rounded-2xl bg-violet-500 px-6 py-3 text-white font-medium shadow-sm hover:bg-violet-600 transition"
+                  >
+                    + Dodaj predmet
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditingLesson(null);
+                      setLessonModalOpen(true);
+                    }}
+                    className="rounded-2xl bg-white border border-violet-200 px-6 py-3 text-violet-700 font-medium shadow-sm hover:bg-violet-50 transition"
+                  >
+                    + Dodaj gradivo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
+                <p className="text-sm text-slate-500">Predmeti</p>
+
+                <h3 className="mt-2 text-3xl font-medium text-slate-900">
+                  {subjects.length}
+                </h3>
+              </div>
+
+              <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
+                <p className="text-sm text-slate-500">Učna gradiva</p>
+
+                <h3 className="mt-2 text-3xl font-medium text-slate-900">
+                  {lessons.length}
+                </h3>
+              </div>
+
+              <div className="bg-pink-50 rounded-3xl p-6 shadow-sm border border-pink-100">
+                <p className="text-pink-500 text-sm font-medium mb-2">
+                  AI pomočnik
+                </p>
+
+                <h2 className="text-xl font-medium text-slate-900">
+                  Pomoč pri pripravi gradiva
+                </h2>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {subjects.map((subject, index) => {
+                const icons = ["💻", "🎨", "📚", "🧠"];
+                const icon = icons[index % icons.length];
+
+                return (
+                  <div
+                    key={subject.id}
+                    className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-lg transition duration-300"
+                  >
+                    <div className="h-32 bg-violet-100 p-6 flex items-start justify-between">
+                      <span className="text-4xl">{icon}</span>
+
+                      <div className="bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full text-slate-500 text-sm font-medium">
+                        Predmet
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <h2 className="text-2xl font-semibold text-slate-900 mb-2">
+                        {subject.name}
+                      </h2>
+
+                      <p className="text-slate-500 mb-6 text-sm min-h-[50px]">
+                        {subject.description || "Brez opisa predmeta."}
+                      </p>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setSelectedSubject(subject)}
+                          className="flex-1 bg-violet-500 hover:bg-violet-600 text-white py-3 rounded-2xl font-medium transition"
+                        >
+                          Odpri
+                        </button>
+
+                        <button
+                          onClick={() => openEditSubject(subject)}
+                          className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition"
+                        >
+                          Uredi
+                        </button>
+
+                        <button
+                          onClick={() => deleteSubject(subject.id)}
+                          className="px-5 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-500 font-medium transition"
+                        >
+                          Briši
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </>
         ) : (
           <>
-            <div className="professor-course-header">
-              <div className="professor-course-info">
-                <span>Aktiven predmet</span>
-                <h1>{selectedSubject.title}</h1>
-              </div>
+            <button
+              onClick={() => setSelectedSubject(null)}
+              className="mb-5 text-violet-600 font-medium hover:text-violet-800"
+            >
+              ← Nazaj na predmete
+            </button>
 
-              <ProfessorAiBox
-               onGenerate={() => setUploadType("AI generiranje vsebine")}
-              />
+            <div className="mb-8 rounded-3xl bg-violet-50 p-8 shadow-sm border border-violet-100">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-sm font-medium text-violet-600">
+                    Aktiven predmet
+                  </span>
+
+                  <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+                    {selectedSubject.name}
+                  </h1>
+                </div>
+
+                <button
+                  onClick={openCreateLesson}
+                  className="rounded-2xl bg-violet-500 px-6 py-3 text-white font-medium shadow-sm hover:bg-violet-600 transition"
+                >
+                  + Dodaj gradivo
+                </button>
+              </div>
             </div>
 
-            <ProfessorTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <div className="mb-5">
+              <h2 className="text-2xl font-semibold text-slate-900">
+                Učno gradivo
+              </h2>
 
-            {activeTab === "vsebine" && (
-              <section className="professor-content-grid professor-content-full">
-                <div className="professor-large-card">
-                  <h2>Objavljene vsebine</h2>
+              <p className="text-slate-500 text-sm">
+                Prezentacije in dodatno gradivo za predmet.
+              </p>
+            </div>
 
-                  <details className="professor-accordion-item" open>
-                    <summary>📚 Prezentacije</summary>
-                    <div className="professor-upload-list">
-                      {[
-                        { title: "Predavanje 1 - Uvod", file: "uvod.pdf", size: "2.4 MB" },
-                        { title: "Predavanje 2 - Primeri", file: "primeri.pdf", size: "3.1 MB" },
-                        { title: "Predavanje 3 - Napredna snov", file: "napredno.pdf", size: "4.0 MB" },
-                      ].map((item) => (
-                        <div className="professor-upload-row" key={item.file}>
-                          <div className="professor-file-icon">PDF</div>
-                          <div>
-                            <h3>{item.title}</h3>
-                            <p>{item.file} · {item.size}</p>
-                          </div>
-                          <button onClick={() => setUploadType("prezentacijo")}>
-                            Uredi
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-
-                  <details className="professor-accordion-item">
-                    <summary>📄 Dodatno gradivo</summary>
-                    <div className="professor-material-list">
-                      <div className="professor-material-row purple">
-                        <div className="professor-material-icon">🔗</div>
-                        <div>
-                          <h3>React dokumentacija</h3>
-                          <p>Uradna razlaga komponent in state-a.</p>
-                        </div>
-                        <button onClick={() => setUploadType("dodatno gradivo")}>
-                          Uredi
-                        </button>
-                      </div>
-
-                      <div className="professor-material-row blue">
-                        <div className="professor-material-icon">📘</div>
-                        <div>
-                          <h3>Primeri spletnih sistemov</h3>
-                          <p>Kratek članek za dodatno razumevanje arhitekture.</p>
-                        </div>
-                        <button onClick={() => setUploadType("dodatno gradivo")}>
-                          Uredi
-                        </button>
-                      </div>
-                    </div>
-                  </details>
-
-                  <details className="professor-accordion-item">
-                    <summary>⭐ Kvizi</summary>
-                    <div className="professor-material-list">
-                      <div className="professor-material-row purple">
-                        <div className="professor-material-icon">⭐</div>
-                        <div>
-                          <h3>Kviz: React osnove</h3>
-                          <p>Kratek kviz za preverjanje razumevanja snovi.</p>
-                        </div>
-                        <button onClick={() => setUploadType("kviz")}>
-                          Uredi
-                        </button>
-                      </div>
-                    </div>
-                  </details>
-
-                  <details className="professor-accordion-item">
-                    <summary>🧪 Vaje</summary>
-                    <div className="professor-material-list">
-                      <div className="professor-material-row purple">
-                        <div className="professor-material-icon">🧩</div>
-                        <div>
-                          <h3>Vaja 1: Osnovni pojmi</h3>
-                          <p>Kratek praktični primer za razumevanje snovi.</p>
-                        </div>
-                        <button onClick={() => setUploadType("vajo")}>
-                          Uredi
-                        </button>
-                      </div>
-
-                      <div className="professor-material-row blue">
-                        <div className="professor-material-icon">📝</div>
-                        <div>
-                          <h3>Vaja 2: Praktična naloga</h3>
-                          <p>Samostojna naloga z navodili in primerom rešitve.</p>
-                        </div>
-                        <button onClick={() => setUploadType("vajo")}>
-                          Uredi
-                        </button>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-              </section>
-            )}
-
-            {activeTab === "komentarji" && (
-              <section className="professor-large-card">
-                <h2>Komentarji za študente</h2>
-
-                <div className="professor-comment-box">
-                  <input
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    placeholder="npr. Ana Novak"
-                  />
-
-                  <textarea
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Napiši, kaj mora študent izboljšati..."
-                  />
-
-                  <button onClick={sendComment}>
-                    {commentSent ? "Komentar poslan ✓" : "Pošlji komentar"}
-                  </button>
-                </div>
-              </section>
-            )}
-
-            {activeTab === "ocene" && (
-              <section className="professor-table-card">
-                <h2>Ocene študentov</h2>
-                <div className="professor-table">
-                  <div className="professor-table-head">
-                    <span>Študent</span>
-                    <span>Kviz</span>
-                    <span>Ocena</span>
-                    <span>Točke</span>
-                  </div>
-                  <div className="professor-table-row">
-                    <span>Ana Novak</span>
-                    <span>React osnove</span>
-                    <span>9</span>
-                    <span>92%</span>
-                  </div>
-                  <div className="professor-table-row">
-                    <span>Marko Horvat</span>
-                    <span>React osnove</span>
-                    <span>7</span>
-                    <span>76%</span>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {activeTab === "analitika" && (
-              <section className="professor-analytics">
-                <div className="professor-stat-card">
-                  <h3>Študenti</h3>
-                  <h2>{selectedSubject.students}</h2>
-                </div>
-                <div className="professor-stat-card">
-                  <h3>Prezentacije</h3>
-                  <h2>{selectedSubject.presentations}</h2>
-                </div>
-                <div className="professor-stat-card">
-                  <h3>Kvizi</h3>
-                  <h2>{selectedSubject.quizzes}</h2>
-                </div>
-                <div className="professor-chart-card">
-                  <h2>Najtežje teme</h2>
-                  <div className="professor-bar-row">
-                    <span>React Hooks</span>
-                    <div>
-                      <span style={{ width: "75%" }} />
-                    </div>
-                  </div>
-                  <div className="professor-bar-row">
-                    <span>State management</span>
-                    <div>
-                      <span style={{ width: "60%" }} />
-                    </div>
-                  </div>
-                  <div className="professor-bar-row">
-                    <span>Komponente</span>
-                    <div>
-                      <span style={{ width: "45%" }} />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
+            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+              <LessonList
+                lessons={selectedLessons}
+                onEdit={openEditLesson}
+                onDelete={deleteLesson}
+              />
+            </div>
           </>
         )}
       </main>
 
-      {uploadType && (
-        <div className="professor-modal-backdrop">
-          <div className="professor-modal">
-            <h2>Dodaj / uredi {uploadType}</h2>
-            <p className="professor-muted">
-              Tukaj profesor lahko naloži datoteko ali pripravi vsebino za
-              študente.
-            </p>
+      {subjectModalOpen && (
+        <SubjectFormModal
+          subject={editingSubject}
+          onClose={() => setSubjectModalOpen(false)}
+          onSaved={() => {
+            setSubjectModalOpen(false);
+            fetchSubjects();
+          }}
+        />
+      )}
 
-            <div className="professor-dropzone">
-              <strong>Povleci datoteko sem</strong>
-              <p>ali klikni za izbiro PDF, slike ali dokumenta.</p>
-            </div>
-
-            <div className="professor-modal-actions">
-              <button onClick={() => setUploadType(null)}>Prekliči</button>
-              <button onClick={() => setUploadType(null)}>Shrani</button>
-            </div>
-          </div>
-        </div>
+      {lessonModalOpen && (
+        <LessonFormModal
+          subjects={subjects}
+          defaultSubjectId={selectedSubject?.id}
+          lesson={editingLesson}
+          onClose={() => setLessonModalOpen(false)}
+          onSaved={() => {
+            setLessonModalOpen(false);
+            fetchLessons();
+          }}
+        />
       )}
     </div>
   );
