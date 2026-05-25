@@ -6,6 +6,7 @@ import ProfessorSidebar from "../components/professor/ProfessorSidebar";
 import SubjectFormModal from "../components/professor/SubjectFormModal";
 import LessonList from "../components/professor/LessonList";
 import LessonFormModal from "../components/professor/LessonFormModal";
+import ProfessorLessonVariantPreview from "../components/professor/ProfessorLessonVariantPreview";
 
 const ProfessorDashboard = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -17,6 +18,8 @@ const ProfessorDashboard = () => {
 
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+
+  const [previewLesson, setPreviewLesson] = useState<Lesson | null>(null);
 
   const fetchSubjects = async () => {
     const res = await api.get("/subjects");
@@ -65,6 +68,11 @@ const ProfessorDashboard = () => {
 
   const deleteLesson = async (id: string) => {
     await api.delete(`/lessons/${id}`);
+
+    if (previewLesson?.id === id) {
+      setPreviewLesson(null);
+    }
+
     fetchLessons();
   };
 
@@ -72,7 +80,10 @@ const ProfessorDashboard = () => {
     <div className="min-h-screen bg-slate-100 flex">
       <ProfessorSidebar
         selectedSubject={selectedSubject}
-        goHome={() => setSelectedSubject(null)}
+        goHome={() => {
+          setSelectedSubject(null);
+          setPreviewLesson(null);
+        }}
       />
 
       <main className="flex-1 p-8">
@@ -168,7 +179,10 @@ const ProfessorDashboard = () => {
 
                       <div className="flex gap-3">
                         <button
-                          onClick={() => setSelectedSubject(subject)}
+                          onClick={() => {
+                            setSelectedSubject(subject);
+                            setPreviewLesson(null);
+                          }}
                           className="flex-1 bg-violet-500 hover:bg-violet-600 text-white py-3 rounded-2xl font-medium transition"
                         >
                           Odpri
@@ -197,7 +211,10 @@ const ProfessorDashboard = () => {
         ) : (
           <>
             <button
-              onClick={() => setSelectedSubject(null)}
+              onClick={() => {
+                setSelectedSubject(null);
+                setPreviewLesson(null);
+              }}
               className="mb-5 text-violet-600 font-medium hover:text-violet-800"
             >
               ← Nazaj na predmete
@@ -239,8 +256,37 @@ const ProfessorDashboard = () => {
                 lessons={selectedLessons}
                 onEdit={openEditLesson}
                 onDelete={deleteLesson}
+                onPreview={setPreviewLesson}
               />
             </div>
+
+            {previewLesson && (
+              <div className="mt-8 rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-sm text-violet-600 font-medium">
+                      Predogled gradiva
+                    </p>
+
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      {previewLesson.title}
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => setPreviewLesson(null)}
+                    className="rounded-xl bg-slate-100 px-4 py-2 text-slate-600 hover:bg-slate-200"
+                  >
+                    Zapri
+                  </button>
+                </div>
+
+                <ProfessorLessonVariantPreview
+                  lessonId={previewLesson.id}
+                  lessonTitle={previewLesson.title}
+                />
+              </div>
+            )}
           </>
         )}
       </main>
