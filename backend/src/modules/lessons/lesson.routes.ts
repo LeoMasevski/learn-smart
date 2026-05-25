@@ -3,6 +3,8 @@ import { Router } from "express";
 import {
   handleGetAllLessons,
   handleGetLessonById,
+  handleGetLessonVariants,
+  handleGenerateLessonVariants,
   handleCreateLesson,
   handleUpdateLesson,
   handleDeleteLesson,
@@ -22,6 +24,15 @@ router.post(
   requireRole(["PROFESSOR"]),
   uploadPdf.single("file"),
   handleCreateLesson
+);
+
+router.get("/:id/variants", handleGetLessonVariants);
+
+router.post(
+  "/:id/generate-variants",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleGenerateLessonVariants
 );
 
 router.get("/:id", handleGetLessonById);

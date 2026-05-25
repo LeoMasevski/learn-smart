@@ -23,8 +23,11 @@ const LessonFormModal = ({
     lesson?.subject_id || defaultSubjectId || subjects[0]?.id || ""
   );
 
-  const [materialType, setMaterialType] =
-    useState<MaterialType>("Prezentacija");
+  const [materialType, setMaterialType] = useState<MaterialType>(
+    lesson?.title?.startsWith("[Dodatno gradivo]")
+      ? "Dodatno gradivo"
+      : "Prezentacija"
+  );
 
   const cleanTitle = lesson?.title
     ?.replace("[Prezentacija] ", "")
@@ -35,30 +38,53 @@ const LessonFormModal = ({
     lesson?.original_content || ""
   );
 
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
   const saveLesson = async () => {
+    if (saving) return;
+
     if (!subjectId) {
-      alert("Izberi predmet.");
+      setError("Izberi predmet.");
       return;
     }
 
     if (!title.trim() || !originalContent.trim()) {
-      alert("Vnesi naslov in vsebino gradiva.");
+      setError("Vnesi naslov in vsebino gradiva.");
       return;
     }
 
-    const payload = {
-      subjectId,
-      title: `[${materialType}] ${title}`,
-      originalContent,
-    };
-
-    if (lesson) {
-      await api.put(`/lessons/${lesson.id}`, payload);
-    } else {
-      await api.post("/lessons", payload);
+    if (originalContent.trim().length < 20) {
+      setError("Vsebina gradiva mora imeti vsaj 20 znakov.");
+      return;
     }
 
-    onSaved();
+    try {
+      setSaving(true);
+      setError("");
+
+      const payload = {
+        subjectId,
+        title: `[${materialType}] ${title.trim()}`,
+        originalContent: originalContent.trim(),
+      };
+
+      if (lesson) {
+        await api.put(`/lessons/${lesson.id}`, payload);
+      } else {
+        await api.post("/lessons", payload);
+      }
+
+      onSaved();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Napaka pri shranjevanju gradiva."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -68,10 +94,17 @@ const LessonFormModal = ({
           {lesson ? "Uredi učno gradivo" : "Dodaj učno gradivo"}
         </h2>
 
+        {error && (
+          <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-red-600 text-sm font-medium">
+            {error}
+          </div>
+        )}
+
         <select
           className="w-full border border-slate-300 rounded-xl px-4 py-3 mb-4"
           value={subjectId}
           onChange={(e) => setSubjectId(e.target.value)}
+          disabled={saving}
         >
           <option value="">Izberi predmet</option>
           {subjects.map((subject) => (
@@ -88,6 +121,7 @@ const LessonFormModal = ({
                 key={type}
                 type="button"
                 onClick={() => setMaterialType(type)}
+                disabled={saving}
                 className={`rounded-2xl border px-4 py-3 font-semibold ${
                   materialType === type
                     ? "border-violet-600 bg-violet-50 text-violet-700"
@@ -107,6 +141,7 @@ const LessonFormModal = ({
           placeholder="Naslov gradiva"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          disabled={saving}
         />
 
         <textarea
@@ -114,18 +149,24 @@ const LessonFormModal = ({
           placeholder="Vsebina učnega gradiva kot tekst..."
           value={originalContent}
           onChange={(e) => setOriginalContent(e.target.value)}
+          disabled={saving}
         />
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="bg-slate-100 px-5 py-3 rounded-xl">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="bg-slate-100 px-5 py-3 rounded-xl disabled:opacity-60"
+          >
             Prekliči
           </button>
 
           <button
             onClick={saveLesson}
-            className="bg-violet-600 text-white px-5 py-3 rounded-xl font-semibold"
+            disabled={saving}
+            className="bg-violet-600 text-white px-5 py-3 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Shrani
+            {saving ? "Shranjujem..." : "Shrani"}
           </button>
         </div>
       </div>

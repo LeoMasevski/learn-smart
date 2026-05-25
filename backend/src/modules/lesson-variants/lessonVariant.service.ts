@@ -23,3 +23,9 @@ export async function createLessonVariant(
     .select()
     .single();
 }
+export async function getLessonVariantsByLessonId(lessonId: string) {
+  return await supabaseAdmin
+    .from("lesson_variants")
+    .select("*")
+    .eq("lesson_id", lessonId);
+}

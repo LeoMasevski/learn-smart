@@ -9,7 +9,10 @@ import {
 
 import { extractTextFromPdf } from "../../utils/pdf";
 import { generateLessonVariantsFromText } from "../ai/ai.service";
-import { createLessonVariant } from "../lesson-variants/lessonVariant.service";
+import {
+  createLessonVariant,
+  getLessonVariantsByLessonId,
+} from "../lesson-variants/lessonVariant.service";
 
 export async function handleGetAllLessons(_req: Request, res: Response) {
   const { data, error } = await getAllLessons();
@@ -37,6 +40,60 @@ export async function handleGetLessonById(req: Request, res: Response) {
   }
 
   res.json(data);
+}
+
+export async function handleGetLessonVariants(req: Request, res: Response) {
+  const lessonId = req.params.id as string;
+
+  const { data, error } = await getLessonVariantsByLessonId(lessonId);
+
+  if (error) {
+    return res.status(500).json({
+      message: "Failed to fetch lesson variants",
+      error: error.message,
+    });
+  }
+
+  res.json(data);
+}
+
+export async function handleGenerateLessonVariants(req: Request, res: Response) {
+  const lessonId = req.params.id as string;
+
+  const { data: lesson, error: lessonError } = await getLessonById(lessonId);
+
+  if (lessonError || !lesson) {
+    return res.status(404).json({
+      message: "Lesson not found",
+      error: lessonError?.message,
+    });
+  }
+
+  try {
+    const variants = await generateLessonVariantsFromText(
+      lesson.title,
+      lesson.original_content,
+      lesson.ai_instructions || ""
+    );
+
+    for (const variant of variants) {
+      await createLessonVariant(
+        lesson.id,
+        variant.learningType,
+        variant.blocks
+      );
+    }
+
+    return res.json({
+      message: "Lesson variants generated successfully",
+      variantsGenerated: variants.length,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to generate lesson variants",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 }
 
 export async function handleCreateLesson(req: Request, res: Response) {
