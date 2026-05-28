@@ -24,3 +24,19 @@ posebej za profesorja in študenta/dijaka
 Konekcija kviza za learning type z backendom
 Dodatek da glede na kviz potem se določi learning type na študenta
 Shranitev v bazo
+
+25.5
+Ustvaritev komponent za lessons
+
+26.5
+Ureditev forme za profesorja za nalaganje lekcij
+Delanje na PDF
+
+27.5
+dodati možnost vnosa aiInstructions/prompta
+pošiljanje multipart/form-data requesta
+
+28.5
+prikaz uspešnega generiranja variant
+popravitev da ob log outu studenta ga da na prijavo page
+popravitev da tudi drag in PDF deluje

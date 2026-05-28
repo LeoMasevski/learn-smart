@@ -8,7 +8,7 @@ export interface UserProfile {
   id: string;
   full_name: string;
   role: UserRole;
-  learning_type?: "visual" | "auditory" | "kinesthetic" | null;
+  learning_type?: "VISUAL" | "AUDITORY" | "KINESTHETIC" | null;
 }
 
 interface AuthUser {

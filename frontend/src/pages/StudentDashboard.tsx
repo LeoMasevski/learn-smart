@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import "../styles/StudentDashboard.css";
+import { useAuth } from "../context/AuthContext";
 
 type Subject = {
   title: string;
@@ -30,6 +31,7 @@ type SectionType =
 type MainPageType = "predmeti" | "profil";
 
 const StudentDashboard = () => {
+  const { logout } = useAuth();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [activeSection, setActiveSection] = useState<SectionType>("pregled");
   const [filter, setFilter] = useState<FilterType>("vse");
@@ -73,12 +75,10 @@ const StudentDashboard = () => {
 
   const filteredSubjects = useMemo(() => {
     let list = [...subjects];
-
     if (filter === "zakljuceni") list = list.filter((s) => s.progress === 100);
     if (filter === "nezakljuceni") list = list.filter((s) => s.progress < 100);
     if (filter === "najboljsi") list = list.sort((a, b) => b.grade - a.grade);
     if (filter === "najslabsi") list = list.sort((a, b) => a.grade - b.grade);
-
     return list;
   }, [filter]);
 
@@ -108,7 +108,6 @@ const StudentDashboard = () => {
     return (
       <div className="student-topbar">
         <div></div>
-
         <div className="student-user-wrapper">
           <button
             className="student-user-avatar-only"
@@ -116,17 +115,15 @@ const StudentDashboard = () => {
           >
             KM
           </button>
-
           {showUserMenu && (
             <div className="student-user-menu">
               <strong>Kristina Maneva</strong>
               <p>Učni tip: Vizualni učenec</p>
               <p>Vpisna številka: 01234567</p>
-
               <button
                 onClick={() => {
-                  alert("Uspešno ste se odjavili.");
                   setShowUserMenu(false);
+                  logout();
                 }}
               >
                 Odjava
@@ -150,16 +147,13 @@ const StudentDashboard = () => {
               <h1>{selectedSubject.title}</h1>
               <p>{selectedSubject.subtitle}</p>
             </div>
-
             <div className="student-course-progress-card">
               <span>Napredek</span>
               <strong>{selectedSubject.progress}%</strong>
             </div>
           </div>
-
           <section className="student-section-card">
             <h1>Pregled učne vsebine</h1>
-
             <div className="student-accordion-list">
               <details className="student-accordion-item" open>
                 <summary>📝 Tekstovna razlaga</summary>
@@ -173,7 +167,6 @@ const StudentDashboard = () => {
                   </p>
                 </div>
               </details>
-
               <details className="student-accordion-item">
                 <summary>📊 Tabelarični prikaz</summary>
                 <div className="student-accordion-content">
@@ -205,7 +198,6 @@ const StudentDashboard = () => {
                   </table>
                 </div>
               </details>
-
               <details className="student-accordion-item">
                 <summary>🖼️ Vizualni prikaz</summary>
                 <div className="student-accordion-content">
@@ -218,7 +210,6 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </details>
-
               <details className="student-accordion-item">
                 <summary>🎧 Auditivni viri</summary>
                 <div className="student-accordion-content">
@@ -232,7 +223,6 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </details>
-
               <details className="student-accordion-item">
                 <summary>🧩 Praktična naloga</summary>
                 <div className="student-accordion-content">
@@ -258,14 +248,12 @@ const StudentDashboard = () => {
         { title: "Predavanje 2 - Primeri", file: "primeri.pdf", size: "3.1 MB" },
         { title: "Predavanje 3 - Napredna snov", file: "napredno.pdf", size: "4.0 MB" },
       ];
-
       return (
         <section className="student-section-card">
           <h1>Prezentacije</h1>
           <p className="student-muted">
             Profesor naloži PDF prezentacije, študent pa jih lahko odpre ali prenese.
           </p>
-
           <div className="student-presentation-list">
             {presentations.map((item, index) => (
               <div className="student-presentation-row" key={index}>
@@ -291,7 +279,6 @@ const StudentDashboard = () => {
           <p className="student-muted">
             Uporabni zunanji viri za dodatno branje in ponavljanje.
           </p>
-
           <div className="student-resource-list">
             <div className="student-resource-row purple">
               <span>🔗</span>
@@ -301,7 +288,6 @@ const StudentDashboard = () => {
               </div>
               <button>Odpri</button>
             </div>
-
             <div className="student-resource-row blue">
               <span>📘</span>
               <div>
@@ -322,7 +308,6 @@ const StudentDashboard = () => {
           <p className="student-muted">
             Praktične naloge za utrjevanje snovi po izbranem predmetu.
           </p>
-
           <div className="student-resource-list">
             <div className="student-resource-row purple">
               <span>🧩</span>
@@ -332,7 +317,6 @@ const StudentDashboard = () => {
               </div>
               <button>Odpri</button>
             </div>
-
             <div className="student-resource-row blue">
               <span>📝</span>
               <div>
@@ -351,18 +335,15 @@ const StudentDashboard = () => {
         <section className="student-section-card small-card">
           <h1>Pametno učenje</h1>
           <p className="student-muted">Prikaz vsebine glede na učni tip.</p>
-
           <div className="student-learning-soft">
             <div>
               <span>🖼️</span>
               <h3>Vizualno</h3>
             </div>
-
             <div>
               <span>🎧</span>
               <h3>Auditivno</h3>
             </div>
-
             <div>
               <span>🧩</span>
               <h3>Kinestetično</h3>
@@ -379,7 +360,6 @@ const StudentDashboard = () => {
           <p className="student-muted">
             Kviz je pripravljen za ta predmet in prilagojen učnemu tipu.
           </p>
-
           <div className="student-quiz-focus-card">
             <div>
               <span>⭐</span>
@@ -389,7 +369,6 @@ const StudentDashboard = () => {
                 predmeta.
               </p>
             </div>
-
             <button>Začni kviz</button>
           </div>
         </section>
@@ -403,14 +382,12 @@ const StudentDashboard = () => {
           <p className="student-muted">
             Pregled ocen, kvizov in doseženih točk pri predmetu.
           </p>
-
           <div className="student-score-hero">
             <div>
               <span>Skupni uspeh</span>
               <h2>86%</h2>
               <p>Odlično ti gre! Najboljši rezultat imaš pri projektu.</p>
             </div>
-
             <div className="student-score-badge">🏆</div>
           </div>
         </section>
@@ -422,10 +399,8 @@ const StudentDashboard = () => {
         <section className="student-section-card small-card">
           <h1>Profil</h1>
           <p className="student-muted">Osnovni podatki študenta in učni tip.</p>
-
           <div className="student-profile-modern">
             <div className="student-avatar big">KM</div>
-
             <div>
               <h2>Kristina Maneva</h2>
               <p>Učni tip: <strong>Vizualni učenec</strong></p>
@@ -446,7 +421,6 @@ const StudentDashboard = () => {
         <section className="student-section-card small-card">
           <h1>Profil</h1>
           <p className="student-muted">Osnovni podatki študenta.</p>
-
           <div className="student-profile-modern">
             <div className="student-avatar big">KM</div>
             <div>
@@ -464,7 +438,6 @@ const StudentDashboard = () => {
       <>
         <h1 className="student-page-title">Moji predmeti</h1>
         <p className="student-subtitle">Izberi predmet in nadaljuj z učenjem.</p>
-
         <div className="student-hero-card">
           <div>
             <span>Dobrodošla nazaj 👋</span>
@@ -474,18 +447,40 @@ const StudentDashboard = () => {
               je, da najprej ponoviš to vsebino.
             </p>
           </div>
-
           <button>Ponovi zdaj</button>
         </div>
-
         <div className="student-toolbar">
-          <button className={filter === "vse" ? "student-filter-active" : ""} onClick={() => setFilter("vse")}>Vse</button>
-          <button className={filter === "zakljuceni" ? "student-filter-active" : ""} onClick={() => setFilter("zakljuceni")}>Zaključeni</button>
-          <button className={filter === "nezakljuceni" ? "student-filter-active" : ""} onClick={() => setFilter("nezakljuceni")}>Nezaključeni</button>
-          <button className={filter === "najboljsi" ? "student-filter-active" : ""} onClick={() => setFilter("najboljsi")}>Najboljši uspeh</button>
-          <button className={filter === "najslabsi" ? "student-filter-active" : ""} onClick={() => setFilter("najslabsi")}>Najslabši uspeh</button>
+          <button
+            className={filter === "vse" ? "student-filter-active" : ""}
+            onClick={() => setFilter("vse")}
+          >
+            Vse
+          </button>
+          <button
+            className={filter === "zakljuceni" ? "student-filter-active" : ""}
+            onClick={() => setFilter("zakljuceni")}
+          >
+            Zaključeni
+          </button>
+          <button
+            className={filter === "nezakljuceni" ? "student-filter-active" : ""}
+            onClick={() => setFilter("nezakljuceni")}
+          >
+            Nezaključeni
+          </button>
+          <button
+            className={filter === "najboljsi" ? "student-filter-active" : ""}
+            onClick={() => setFilter("najboljsi")}
+          >
+            Najboljši uspeh
+          </button>
+          <button
+            className={filter === "najslabsi" ? "student-filter-active" : ""}
+            onClick={() => setFilter("najslabsi")}
+          >
+            Najslabši uspeh
+          </button>
         </div>
-
         <section className="student-subject-grid">
           {filteredSubjects.map((subject, index) => (
             <div
@@ -500,23 +495,19 @@ const StudentDashboard = () => {
                 <span className="student-card-icon">{subject.icon}</span>
                 <span className="student-card-percent">{subject.progress}%</span>
               </div>
-
               <div className="student-subject-body">
                 <h3>{subject.title}</h3>
                 <p>{subject.subtitle}</p>
-
                 <div className="student-progress-wrapper">
                   <div
                     className="student-progress-bar"
                     style={{ width: `${subject.progress}%` }}
                   />
                 </div>
-
                 <div className="student-card-bottom">
                   <span>{subject.progress}% končano</span>
                   <strong>Ocena {subject.grade}</strong>
                 </div>
-
                 <button>Odpri predmet</button>
               </div>
             </div>
@@ -532,7 +523,6 @@ const StudentDashboard = () => {
         <h1 className="student-logo" onClick={goHome}>
           🎓 LearnSmart
         </h1>
-
         {!selectedSubject ? (
           <>
             <p
@@ -545,9 +535,7 @@ const StudentDashboard = () => {
             >
               ▦ Moji predmeti
             </p>
-
             <div className="student-sidebar-divider"></div>
-
             <p
               className={
                 mainPage === "profil"
@@ -564,9 +552,7 @@ const StudentDashboard = () => {
             <button className="student-back-menu" onClick={goHome}>
               ← Nazaj na predmete
             </button>
-
             <div className="student-sidebar-divider"></div>
-
             {subjectMenu.map((item) => (
               <p
                 key={item.key}
@@ -583,7 +569,6 @@ const StudentDashboard = () => {
           </>
         )}
       </aside>
-
       <main className="student-main">
         {renderTopbar()}
         {selectedSubject ? renderSubjectContent() : renderMainContent()}

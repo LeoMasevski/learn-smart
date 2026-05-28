@@ -9,7 +9,7 @@ import ChartBlock from "./ChartBlock";
 import CodeBlock from "./CodeBlock";
 import ImageBlock from "./ImageBlock";
 
-// ─── Block types ────────────────────────────────────────────────────────────
+//Block tip
 
 type HeadingBlockData = {
   type: "heading";
@@ -97,7 +97,7 @@ export type LessonData = {
   blocks: LessonBlock[];
 };
 
-// ─── Learning type badge ─────────────────────────────────────────────────────
+//Learning tip 
 
 const LEARNING_TYPE_META = {
   VISUAL:       { emoji: "👁️",  label: "Vizualni",       color: "bg-purple-100 text-purple-700" },
@@ -105,7 +105,7 @@ const LEARNING_TYPE_META = {
   KINESTHETIC:  { emoji: "🤲",  label: "Kinestetični",   color: "bg-amber-100 text-amber-700" },
 };
 
-// ─── Block renderer ───────────────────────────────────────────────────────────
+//Block renderer 
 
 function renderBlock(block: LessonBlock, index: number) {
   switch (block.type) {
@@ -142,7 +142,7 @@ function renderBlock(block: LessonBlock, index: number) {
   }
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// Main komponenta
 
 type Props = {
   lesson: LessonData;
