@@ -51,7 +51,7 @@ function QuizWrapper() {
 
   async function handleQuizComplete(learningType: LearningType) {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/users/learning-type`, {
+      const res = await fetch(`http://localhost:5000/api/users/learning-type`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
