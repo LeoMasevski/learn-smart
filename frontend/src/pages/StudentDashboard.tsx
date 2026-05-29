@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "../styles/StudentDashboard.css";
 
-type Subject = {
-  title: string;
-  subtitle: string;
-  progress: number;
-  grade: number;
-  color: string;
-  icon: string;
-};
+import { api } from "../api/api";
+import { useAuth } from "../context/AuthContext";
+import LessonRenderer from "../components/lesson/LessonRenderer";
+
+import type {
+  StudentSubject,
+  StudentLesson,
+  LessonVariant,
+} from "../types/student";
 
 type FilterType =
   | "vse"
@@ -17,92 +18,151 @@ type FilterType =
   | "najboljsi"
   | "najslabsi";
 
-type SectionType =
-  | "pregled"
-  | "prezentacije"
-  | "gradivo"
-  | "vaje"
-  | "ucenje"
-  | "kviz"
-  | "rezultati"
-  | "profil";
-
 type MainPageType = "predmeti" | "profil";
 
 const StudentDashboard = () => {
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-  const [activeSection, setActiveSection] = useState<SectionType>("pregled");
+  const { profile, logout } = useAuth();
+
+  const [subjects, setSubjects] = useState<StudentSubject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<StudentSubject | null>(
+    null
+  );
+
+  const [lessons, setLessons] = useState<StudentLesson[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<StudentLesson | null>(
+    null
+  );
+
+  const [activeVariant, setActiveVariant] = useState<LessonVariant | null>(
+    null
+  );
+
   const [filter, setFilter] = useState<FilterType>("vse");
   const [mainPage, setMainPage] = useState<MainPageType>("predmeti");
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const subjects: Subject[] = [
-    {
-      title: "Programiranje",
-      subtitle: "React, komponente in frontend razvoj",
-      progress: 72,
-      grade: 8,
-      color: "#6d4cff",
-      icon: "💻",
-    },
-    {
-      title: "Podatkovne baze",
-      subtitle: "SQL, relacije in poizvedbe",
-      progress: 100,
-      grade: 9,
-      color: "#9ca3af",
-      icon: "🗄️",
-    },
-    {
-      title: "Spletni sistemi",
-      subtitle: "Spletne aplikacije in arhitektura",
-      progress: 30,
-      grade: 6,
-      color: "#60a5fa",
-      icon: "🌐",
-    },
-    {
-      title: "UI/UX oblikovanje",
-      subtitle: "Uporabniška izkušnja in dizajn",
-      progress: 60,
-      grade: 7,
-      color: "#8b5cf6",
-      icon: "🎨",
-    },
-  ];
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [loadingLesson, setLoadingLesson] = useState(false);
+  const [error, setError] = useState("");
 
-  const filteredSubjects = useMemo(() => {
-    let list = [...subjects];
+  useEffect(() => {
+    fetchMySubjects();
+  }, []);
 
-    if (filter === "zakljuceni") list = list.filter((s) => s.progress === 100);
-    if (filter === "nezakljuceni") list = list.filter((s) => s.progress < 100);
-    if (filter === "najboljsi") list = list.sort((a, b) => b.grade - a.grade);
-    if (filter === "najslabsi") list = list.sort((a, b) => a.grade - b.grade);
+  async function fetchMySubjects() {
+    try {
+      setLoadingSubjects(true);
+      setError("");
 
-    return list;
-  }, [filter]);
+      const res = await api.get("/user-subjects/my-subjects");
+      setSubjects(res.data);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Napaka pri nalaganju vpisanih predmetov."
+      );
+    } finally {
+      setLoadingSubjects(false);
+    }
+  }
 
-  const subjectMenu: { key: SectionType; label: string }[] = [
-    { key: "pregled", label: "📌 Pregled" },
-    { key: "prezentacije", label: "📚 Prezentacije" },
-    { key: "gradivo", label: "📄 Dodatno gradivo" },
-    { key: "vaje", label: "🧪 Vaje" },
-    { key: "ucenje", label: "🧠 Pametno učenje" },
-    { key: "kviz", label: "⭐ Kviz" },
-    { key: "rezultati", label: "🏆 Rezultati" },
-    { key: "profil", label: "👤 Profil" },
-  ];
+  async function openSubject(subject: StudentSubject) {
+    if (!profile?.learning_type) {
+      setError("Najprej moraš rešiti kviz učnega tipa.");
+      return;
+    }
 
-  const openSubject = (subject: Subject) => {
-    setSelectedSubject(subject);
-    setActiveSection("pregled");
-  };
+    try {
+      setSelectedSubject(subject);
+      setSelectedLesson(null);
+      setActiveVariant(null);
+      setLoadingLesson(true);
+      setError("");
 
-  const goHome = () => {
+      const lessonsRes = await api.get(`/lessons/subject/${subject.id}`);
+      const subjectLessons: StudentLesson[] = lessonsRes.data;
+
+      setLessons(subjectLessons);
+
+      if (subjectLessons.length === 0) {
+        setError("Za ta predmet še ni dodanih lekcij.");
+        return;
+      }
+
+      const firstLesson = subjectLessons[0];
+      setSelectedLesson(firstLesson);
+
+      const variantRes = await api.get(
+        `/lessons/${firstLesson.id}/variant/${profile.learning_type}`
+      );
+
+      setActiveVariant(variantRes.data);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Napaka pri nalaganju prilagojene lekcije."
+      );
+    } finally {
+      setLoadingLesson(false);
+    }
+  }
+
+  async function openLesson(lesson: StudentLesson) {
+    if (!profile?.learning_type) {
+      setError("Najprej moraš rešiti kviz učnega tipa.");
+      return;
+    }
+
+    try {
+      setSelectedLesson(lesson);
+      setActiveVariant(null);
+      setLoadingLesson(true);
+      setError("");
+
+      const res = await api.get(
+        `/lessons/${lesson.id}/variant/${profile.learning_type}`
+      );
+
+      setActiveVariant(res.data);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Napaka pri nalaganju prilagojene lekcije."
+      );
+    } finally {
+      setLoadingLesson(false);
+    }
+  }
+
+  function goHome() {
     setSelectedSubject(null);
-    setActiveSection("pregled");
+    setSelectedLesson(null);
+    setActiveVariant(null);
     setMainPage("predmeti");
-  };
+    setError("");
+  }
+
+  function getLearningTypeLabel() {
+    if (!profile?.learning_type) return "Ni določen";
+
+    const labels = {
+      VISUAL: "Vizualni učenec",
+      AUDITORY: "Slušni učenec",
+      KINESTHETIC: "Kinestetični učenec",
+    };
+
+    return labels[profile.learning_type];
+  }
+
+  function getInitials() {
+    if (!profile?.full_name) return "U";
+    return profile.full_name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
 
   const renderTopbar = () => {
     return (
@@ -114,18 +174,17 @@ const StudentDashboard = () => {
             className="student-user-avatar-only"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            KM
+            {getInitials()}
           </button>
 
           {showUserMenu && (
             <div className="student-user-menu">
-              <strong>Kristina Maneva</strong>
-              <p>Učni tip: Vizualni učenec</p>
-              <p>Vpisna številka: 01234567</p>
+              <strong>{profile?.full_name}</strong>
+              <p>Učni tip: {getLearningTypeLabel()}</p>
 
               <button
                 onClick={() => {
-                  alert("Uspešno ste se odjavili.");
+                  logout();
                   setShowUserMenu(false);
                 }}
               >
@@ -138,324 +197,18 @@ const StudentDashboard = () => {
     );
   };
 
-  const renderSubjectContent = () => {
-    if (!selectedSubject) return null;
-
-    if (activeSection === "pregled") {
-      return (
-        <>
-          <div className="student-course-header compact">
-            <div>
-              <span className="student-small-label">Aktiven predmet</span>
-              <h1>{selectedSubject.title}</h1>
-              <p>{selectedSubject.subtitle}</p>
-            </div>
-
-            <div className="student-course-progress-card">
-              <span>Napredek</span>
-              <strong>{selectedSubject.progress}%</strong>
-            </div>
-          </div>
-
-          <section className="student-section-card">
-            <h1>Pregled učne vsebine</h1>
-
-            <div className="student-accordion-list">
-              <details className="student-accordion-item" open>
-                <summary>📝 Tekstovna razlaga</summary>
-                <div className="student-accordion-content">
-                  <h3>Arhitektura spletne aplikacije</h3>
-                  <p>
-                    Spletna aplikacija je sestavljena iz frontend dela, backend
-                    dela in podatkovne baze. Frontend skrbi za prikaz
-                    uporabniškega vmesnika, backend obdeluje zahteve, podatkovna
-                    baza pa hrani podatke.
-                  </p>
-                </div>
-              </details>
-
-              <details className="student-accordion-item">
-                <summary>📊 Tabelarični prikaz</summary>
-                <div className="student-accordion-content">
-                  <table className="student-content-table">
-                    <thead>
-                      <tr>
-                        <th>Komponenta</th>
-                        <th>Vloga</th>
-                        <th>Primer</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>Frontend</td>
-                        <td>Prikaz vsebine uporabniku</td>
-                        <td>React stran</td>
-                      </tr>
-                      <tr>
-                        <td>Backend</td>
-                        <td>Obdelava zahtevkov</td>
-                        <td>Node.js API</td>
-                      </tr>
-                      <tr>
-                        <td>Baza podatkov</td>
-                        <td>Shranjevanje podatkov</td>
-                        <td>PostgreSQL</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-
-              <details className="student-accordion-item">
-                <summary>🖼️ Vizualni prikaz</summary>
-                <div className="student-accordion-content">
-                  <div className="student-visual-flow">
-                    <div>Frontend</div>
-                    <span>→</span>
-                    <div>Backend API</div>
-                    <span>→</span>
-                    <div>Baza podatkov</div>
-                  </div>
-                </div>
-              </details>
-
-              <details className="student-accordion-item">
-                <summary>🎧 Auditivni viri</summary>
-                <div className="student-accordion-content">
-                  <div className="student-link-row">
-                    <span>▶</span>
-                    <div>
-                      <h3>Razlaga MVC arhitekture</h3>
-                      <p>YouTube povezava, ki jo profesor pregleda in objavi.</p>
-                    </div>
-                    <button>Odpri</button>
-                  </div>
-                </div>
-              </details>
-
-              <details className="student-accordion-item">
-                <summary>🧩 Praktična naloga</summary>
-                <div className="student-accordion-content">
-                  <p>
-                    Na podlagi obdelane prezentacije študent dobi praktično
-                    nalogo, ki je povezana z lekcijo.
-                  </p>
-                  <p>
-                    V tem primeru mora študent ustvariti enostavno React
-                    komponento, ki prikaže naslov lekcije, kratek opis in gumb.
-                  </p>
-                </div>
-              </details>
-            </div>
-          </section>
-        </>
-      );
+  const renderSubjects = () => {
+    if (loadingSubjects) {
+      return <p className="student-muted">Nalagam predmete...</p>;
     }
 
-    if (activeSection === "prezentacije") {
-      const presentations = [
-        { title: "Predavanje 1 - Uvod", file: "uvod.pdf", size: "2.4 MB" },
-        { title: "Predavanje 2 - Primeri", file: "primeri.pdf", size: "3.1 MB" },
-        { title: "Predavanje 3 - Napredna snov", file: "napredno.pdf", size: "4.0 MB" },
-      ];
-
-      return (
-        <section className="student-section-card">
-          <h1>Prezentacije</h1>
-          <p className="student-muted">
-            Profesor naloži PDF prezentacije, študent pa jih lahko odpre ali prenese.
-          </p>
-
-          <div className="student-presentation-list">
-            {presentations.map((item, index) => (
-              <div className="student-presentation-row" key={index}>
-                <div className="student-file-icon">PDF</div>
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.file} · {item.size}</p>
-                </div>
-                <button onClick={() => alert(`Prenos datoteke: ${item.file}`)}>
-                  ⬇ Prenesi
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "gradivo") {
+    if (subjects.length === 0) {
       return (
         <section className="student-section-card small-card">
-          <h1>Dodatno gradivo</h1>
+          <h1>Moji predmeti</h1>
           <p className="student-muted">
-            Uporabni zunanji viri za dodatno branje in ponavljanje.
+            Trenutno nisi vpisan v noben predmet.
           </p>
-
-          <div className="student-resource-list">
-            <div className="student-resource-row purple">
-              <span>🔗</span>
-              <div>
-                <h3>React dokumentacija</h3>
-                <p>Uradna razlaga komponent in state-a.</p>
-              </div>
-              <button>Odpri</button>
-            </div>
-
-            <div className="student-resource-row blue">
-              <span>📘</span>
-              <div>
-                <h3>Primeri spletnih sistemov</h3>
-                <p>Kratek članek za dodatno razumevanje arhitekture.</p>
-              </div>
-              <button>Odpri</button>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "vaje") {
-      return (
-        <section className="student-section-card small-card">
-          <h1>Vaje</h1>
-          <p className="student-muted">
-            Praktične naloge za utrjevanje snovi po izbranem predmetu.
-          </p>
-
-          <div className="student-resource-list">
-            <div className="student-resource-row purple">
-              <span>🧩</span>
-              <div>
-                <h3>Vaja 1: Osnovni pojmi</h3>
-                <p>Kratek praktični primer za razumevanje snovi.</p>
-              </div>
-              <button>Odpri</button>
-            </div>
-
-            <div className="student-resource-row blue">
-              <span>📝</span>
-              <div>
-                <h3>Vaja 2: Praktična naloga</h3>
-                <p>Samostojna naloga z navodili in primerom rešitve.</p>
-              </div>
-              <button>Začni</button>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "ucenje") {
-      return (
-        <section className="student-section-card small-card">
-          <h1>Pametno učenje</h1>
-          <p className="student-muted">Prikaz vsebine glede na učni tip.</p>
-
-          <div className="student-learning-soft">
-            <div>
-              <span>🖼️</span>
-              <h3>Vizualno</h3>
-            </div>
-
-            <div>
-              <span>🎧</span>
-              <h3>Auditivno</h3>
-            </div>
-
-            <div>
-              <span>🧩</span>
-              <h3>Kinestetično</h3>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "kviz") {
-      return (
-        <section className="student-section-card">
-          <h1>Kviz</h1>
-          <p className="student-muted">
-            Kviz je pripravljen za ta predmet in prilagojen učnemu tipu.
-          </p>
-
-          <div className="student-quiz-focus-card">
-            <div>
-              <span>⭐</span>
-              <h2>Kviz za predmet: {selectedSubject.title}</h2>
-              <p>
-                Reši kviz in pridobi točke. Rezultat se shrani med rezultate
-                predmeta.
-              </p>
-            </div>
-
-            <button>Začni kviz</button>
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "rezultati") {
-      return (
-        <section className="student-section-card">
-          <h1>Rezultati</h1>
-          <p className="student-muted">
-            Pregled ocen, kvizov in doseženih točk pri predmetu.
-          </p>
-
-          <div className="student-score-hero">
-            <div>
-              <span>Skupni uspeh</span>
-              <h2>86%</h2>
-              <p>Odlično ti gre! Najboljši rezultat imaš pri projektu.</p>
-            </div>
-
-            <div className="student-score-badge">🏆</div>
-          </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "profil") {
-      return (
-        <section className="student-section-card small-card">
-          <h1>Profil</h1>
-          <p className="student-muted">Osnovni podatki študenta in učni tip.</p>
-
-          <div className="student-profile-modern">
-            <div className="student-avatar big">KM</div>
-
-            <div>
-              <h2>Kristina Maneva</h2>
-              <p>Učni tip: <strong>Vizualni učenec</strong></p>
-              <p>Aktiven predmet: <strong>{selectedSubject.title}</strong></p>
-              <p>Napredek: <strong>{selectedSubject.progress}%</strong></p>
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    return null;
-  };
-
-  const renderMainContent = () => {
-    if (mainPage === "profil") {
-      return (
-        <section className="student-section-card small-card">
-          <h1>Profil</h1>
-          <p className="student-muted">Osnovni podatki študenta.</p>
-
-          <div className="student-profile-modern">
-            <div className="student-avatar big">KM</div>
-            <div>
-              <h2>Kristina Maneva</h2>
-              <p>Učni tip: <strong>Vizualni učenec</strong></p>
-              <p>Skupni napredek: <strong>65%</strong></p>
-              <p>Število predmetov: <strong>4</strong></p>
-            </div>
-          </div>
         </section>
       );
     }
@@ -463,66 +216,181 @@ const StudentDashboard = () => {
     return (
       <>
         <h1 className="student-page-title">Moji predmeti</h1>
-        <p className="student-subtitle">Izberi predmet in nadaljuj z učenjem.</p>
+        <p className="student-subtitle">
+          Izberi predmet in nadaljuj s prilagojenim učenjem.
+        </p>
 
         <div className="student-hero-card">
           <div>
-            <span>Dobrodošla nazaj 👋</span>
-            <h2>Nadaljuj tam, kjer si končala</h2>
+            <span>Dobrodošel nazaj 👋</span>
+            <h2>Nadaljuj z učenjem</h2>
             <p>
-              Najslabši rezultat imaš pri predmetu Spletni sistemi. Priporočeno
-              je, da najprej ponoviš to vsebino.
+              Tvoje lekcije se prikažejo glede na tvoj učni tip:{" "}
+              <strong>{getLearningTypeLabel()}</strong>.
             </p>
           </div>
 
-          <button>Ponovi zdaj</button>
+          <button
+            onClick={() => {
+              if (subjects[0]) openSubject(subjects[0]);
+            }}
+          >
+            Začni zdaj
+          </button>
         </div>
 
         <div className="student-toolbar">
-          <button className={filter === "vse" ? "student-filter-active" : ""} onClick={() => setFilter("vse")}>Vse</button>
-          <button className={filter === "zakljuceni" ? "student-filter-active" : ""} onClick={() => setFilter("zakljuceni")}>Zaključeni</button>
-          <button className={filter === "nezakljuceni" ? "student-filter-active" : ""} onClick={() => setFilter("nezakljuceni")}>Nezaključeni</button>
-          <button className={filter === "najboljsi" ? "student-filter-active" : ""} onClick={() => setFilter("najboljsi")}>Najboljši uspeh</button>
-          <button className={filter === "najslabsi" ? "student-filter-active" : ""} onClick={() => setFilter("najslabsi")}>Najslabši uspeh</button>
+          <button
+            className={filter === "vse" ? "student-filter-active" : ""}
+            onClick={() => setFilter("vse")}
+          >
+            Vse
+          </button>
         </div>
 
         <section className="student-subject-grid">
-          {filteredSubjects.map((subject, index) => (
-            <div
-              className="student-subject-card"
-              key={index}
-              onClick={() => openSubject(subject)}
-            >
+          {subjects.map((subject, index) => {
+            const colors = ["#6d4cff", "#60a5fa", "#8b5cf6", "#10b981"];
+            const icons = ["📘", "💻", "🧠", "🎨"];
+
+            return (
               <div
-                className="student-subject-top"
-                style={{ background: subject.color }}
+                className="student-subject-card"
+                key={subject.id}
+                onClick={() => openSubject(subject)}
               >
-                <span className="student-card-icon">{subject.icon}</span>
-                <span className="student-card-percent">{subject.progress}%</span>
-              </div>
+                <div
+                  className="student-subject-top"
+                  style={{ background: colors[index % colors.length] }}
+                >
+                  <span className="student-card-icon">
+                    {icons[index % icons.length]}
+                  </span>
 
-              <div className="student-subject-body">
-                <h3>{subject.title}</h3>
-                <p>{subject.subtitle}</p>
-
-                <div className="student-progress-wrapper">
-                  <div
-                    className="student-progress-bar"
-                    style={{ width: `${subject.progress}%` }}
-                  />
+                  <span className="student-card-percent">AI</span>
                 </div>
 
-                <div className="student-card-bottom">
-                  <span>{subject.progress}% končano</span>
-                  <strong>Ocena {subject.grade}</strong>
-                </div>
+                <div className="student-subject-body">
+                  <h3>{subject.name}</h3>
+                  <p>{subject.description || "Brez opisa predmeta."}</p>
 
-                <button>Odpri predmet</button>
+                  <div className="student-progress-wrapper">
+                    <div
+                      className="student-progress-bar"
+                      style={{ width: "0%" }}
+                    />
+                  </div>
+
+                  <div className="student-card-bottom">
+                    <span>Prilagojeno učenje</span>
+                    <strong>{getLearningTypeLabel()}</strong>
+                  </div>
+
+                  <button>Odpri predmet</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       </>
+    );
+  };
+
+  const renderSelectedSubject = () => {
+    if (!selectedSubject) return null;
+
+    return (
+      <>
+        <div className="student-course-header compact">
+          <div>
+            <span className="student-small-label">Aktiven predmet</span>
+            <h1>{selectedSubject.name}</h1>
+            <p>{selectedSubject.description || "Brez opisa predmeta."}</p>
+          </div>
+
+          <div className="student-course-progress-card">
+            <span>Učni tip</span>
+            <strong>{profile?.learning_type || "-"}</strong>
+          </div>
+        </div>
+
+        {error && (
+          <div className="student-section-card small-card">
+            <p className="text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        {loadingLesson && (
+          <section className="student-section-card">
+            <p className="student-muted">Nalagam prilagojeno lekcijo...</p>
+          </section>
+        )}
+
+        {!loadingLesson && lessons.length > 0 && (
+          <section className="student-section-card small-card">
+            <h1>Lekcije</h1>
+            <p className="student-muted">
+              Za zdaj se samodejno prikaže prva lekcija. Spodaj lahko ročno
+              preklopiš med lekcijami.
+            </p>
+
+            <div className="student-resource-list">
+              {lessons.map((lesson) => (
+                <div
+                  key={lesson.id}
+                  className={`student-resource-row ${
+                    selectedLesson?.id === lesson.id ? "purple" : "blue"
+                  }`}
+                >
+                  <span>🧠</span>
+
+                  <div>
+                    <h3>{lesson.title}</h3>
+                    <p>{lesson.original_content.slice(0, 120)}...</p>
+                  </div>
+
+                  <button onClick={() => openLesson(lesson)}>Odpri</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!loadingLesson && activeVariant && selectedLesson && (
+          <section className="student-section-card">
+            <LessonRenderer
+              lesson={{
+                lessonTitle: selectedLesson.title,
+                learningType: activeVariant.learning_type,
+                blocks: activeVariant.content_blocks,
+              }}
+            />
+          </section>
+        )}
+      </>
+    );
+  };
+
+  const renderProfile = () => {
+    return (
+      <section className="student-section-card small-card">
+        <h1>Profil</h1>
+        <p className="student-muted">Osnovni podatki študenta.</p>
+
+        <div className="student-profile-modern">
+          <div className="student-avatar big">{getInitials()}</div>
+
+          <div>
+            <h2>{profile?.full_name}</h2>
+            <p>
+              Učni tip: <strong>{getLearningTypeLabel()}</strong>
+            </p>
+            <p>
+              Število predmetov: <strong>{subjects.length}</strong>
+            </p>
+          </div>
+        </div>
+      </section>
     );
   };
 
@@ -567,26 +435,25 @@ const StudentDashboard = () => {
 
             <div className="student-sidebar-divider"></div>
 
-            {subjectMenu.map((item) => (
-              <p
-                key={item.key}
-                className={
-                  activeSection === item.key
-                    ? "student-active-menu"
-                    : "student-menu-item"
-                }
-                onClick={() => setActiveSection(item.key)}
-              >
-                {item.label}
-              </p>
-            ))}
+            <p className="student-active-menu">🧠 Pametno učenje</p>
           </>
         )}
       </aside>
 
       <main className="student-main">
         {renderTopbar()}
-        {selectedSubject ? renderSubjectContent() : renderMainContent()}
+
+        {error && !selectedSubject && (
+          <div className="student-section-card small-card">
+            <p className="text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        {selectedSubject
+          ? renderSelectedSubject()
+          : mainPage === "profil"
+          ? renderProfile()
+          : renderSubjects()}
       </main>
     </div>
   );
