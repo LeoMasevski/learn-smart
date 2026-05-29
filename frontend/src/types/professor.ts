@@ -11,6 +11,7 @@ export type Lesson = {
   subject_id: string;
   title: string;
   original_content: string;
+  ai_instructions?: string;
   created_by?: string;
   created_at?: string;
   updated_at?: string;

@@ -1,12 +1,13 @@
+import { useAuth } from "../../context/AuthContext";
+
 type Props = {
   showUserMenu: boolean;
   setShowUserMenu: (value: boolean) => void;
 };
 
-const StudentTopbar = ({
-  showUserMenu,
-  setShowUserMenu,
-}: Props) => {
+const StudentTopbar = ({ showUserMenu, setShowUserMenu }: Props) => {
+  const { logout } = useAuth();
+
   return (
     <div className="student-topbar">
       <div className="student-user-wrapper">
@@ -16,22 +17,15 @@ const StudentTopbar = ({
         >
           KM
         </button>
-
         {showUserMenu && (
           <div className="student-user-menu">
-            <button className="student-user-menu-item">
-              Profil
-            </button>
-
-            <button className="student-user-menu-item">
-              Nastavitve
-            </button>
-
+            <button className="student-user-menu-item">Profil</button>
+            <button className="student-user-menu-item">Nastavitve</button>
             <button
               className="student-user-menu-item logout"
               onClick={() => {
-                alert("Uspešno ste se odjavili.");
                 setShowUserMenu(false);
+                logout();
               }}
             >
               Odjava
