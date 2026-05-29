@@ -168,7 +168,6 @@ const StudentDashboard = () => {
     return (
       <div className="student-topbar">
         <div></div>
-
         <div className="student-user-wrapper">
           <button
             className="student-user-avatar-only"
@@ -176,7 +175,6 @@ const StudentDashboard = () => {
           >
             {getInitials()}
           </button>
-
           {showUserMenu && (
             <div className="student-user-menu">
               <strong>{profile?.full_name}</strong>
@@ -186,6 +184,7 @@ const StudentDashboard = () => {
                 onClick={() => {
                   logout();
                   setShowUserMenu(false);
+                  logout();
                 }}
               >
                 Odjava
@@ -238,7 +237,6 @@ const StudentDashboard = () => {
             Začni zdaj
           </button>
         </div>
-
         <div className="student-toolbar">
           <button
             className={filter === "vse" ? "student-filter-active" : ""}
@@ -247,7 +245,6 @@ const StudentDashboard = () => {
             Vse
           </button>
         </div>
-
         <section className="student-subject-grid">
           {subjects.map((subject, index) => {
             const colors = ["#6d4cff", "#60a5fa", "#8b5cf6", "#10b981"];
@@ -400,7 +397,6 @@ const StudentDashboard = () => {
         <h1 className="student-logo" onClick={goHome}>
           🎓 LearnSmart
         </h1>
-
         {!selectedSubject ? (
           <>
             <p
@@ -413,9 +409,7 @@ const StudentDashboard = () => {
             >
               ▦ Moji predmeti
             </p>
-
             <div className="student-sidebar-divider"></div>
-
             <p
               className={
                 mainPage === "profil"
@@ -432,14 +426,12 @@ const StudentDashboard = () => {
             <button className="student-back-menu" onClick={goHome}>
               ← Nazaj na predmete
             </button>
-
             <div className="student-sidebar-divider"></div>
 
             <p className="student-active-menu">🧠 Pametno učenje</p>
           </>
         )}
       </aside>
-
       <main className="student-main">
         {renderTopbar()}
 
