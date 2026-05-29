@@ -80,3 +80,17 @@ export async function deleteLesson(id: string) {
     .select()
     .single();
 }
+
+export async function getLessonsBySubjectId(subjectId: string) {
+  return await supabaseAdmin
+    .from("lessons")
+    .select(`
+      *,
+      subjects (
+        id,
+        name
+      )
+    `)
+    .eq("subject_id", subjectId)
+    .order("created_at", { ascending: false });
+}

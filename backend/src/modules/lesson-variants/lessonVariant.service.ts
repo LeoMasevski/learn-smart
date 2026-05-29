@@ -23,9 +23,23 @@ export async function createLessonVariant(
     .select()
     .single();
 }
+
 export async function getLessonVariantsByLessonId(lessonId: string) {
   return await supabaseAdmin
     .from("lesson_variants")
     .select("*")
-    .eq("lesson_id", lessonId);
+    .eq("lesson_id", lessonId)
+    .order("generated_at", { ascending: false });
+}
+
+export async function getLessonVariantByLearningType(
+  lessonId: string,
+  learningType: LearningType
+) {
+  return await supabaseAdmin
+    .from("lesson_variants")
+    .select("*")
+    .eq("lesson_id", lessonId)
+    .eq("learning_type", learningType)
+    .single();
 }

@@ -5,6 +5,7 @@ import lessonRoutes from "../modules/lessons/lesson.routes";
 import quizRoutes from "../modules/quizzes/quiz.routes";
 import dashboardRoutes from "../modules/dashboards/dashboard.routes";
 import subjectRoutes from "../modules/subjects/subject.routes";
+import userSubjectRoutes from "../modules/user-subjects/userSubject.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/lessons", lessonRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/dashboards", dashboardRoutes);
 router.use("/subjects", subjectRoutes);
+router.use("/user-subjects", userSubjectRoutes);
 
 export default router;
