@@ -5,6 +5,7 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
+  getLessonsBySubjectId,
 } from "./lesson.service";
 
 import { extractTextFromPdf } from "../../utils/pdf";
@@ -12,6 +13,7 @@ import { generateLessonVariantsFromText } from "../ai/ai.service";
 import {
   createLessonVariant,
   getLessonVariantsByLessonId,
+  getLessonVariantByLearningType,
 } from "../lesson-variants/lessonVariant.service";
 
 export async function handleGetAllLessons(_req: Request, res: Response) {
@@ -241,4 +243,49 @@ export async function handleDeleteLesson(req: Request, res: Response) {
     message: "Lesson deleted successfully",
     lesson: data,
   });
+}
+
+export async function handleGetLessonsBySubject(req: Request, res: Response) {
+  const subjectId = req.params.subjectId as string;
+
+  const { data, error } = await getLessonsBySubjectId(subjectId);
+
+  if (error) {
+    return res.status(500).json({
+      message: "Failed to fetch lessons for subject",
+      error: error.message,
+    });
+  }
+
+  res.json(data);
+}
+
+export async function handleGetLessonVariantByLearningType(
+  req: Request,
+  res: Response
+) {
+  const lessonId = req.params.id as string;
+  const learningType = (req.params.learningType as string).toUpperCase();
+
+  const validTypes = ["VISUAL", "AUDITORY", "KINESTHETIC"];
+
+  if (!validTypes.includes(learningType)) {
+    return res.status(400).json({
+      message: "Invalid learning type",
+    });
+  }
+
+  const { data, error } = await getLessonVariantByLearningType(
+    lessonId,
+    learningType as "VISUAL" | "AUDITORY" | "KINESTHETIC"
+  );
+
+  if (error || !data) {
+    return res.status(404).json({
+      message: "Lesson variant not found",
+      error: error?.message,
+    });
+  }
+
+  res.json(data);
 }

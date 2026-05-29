@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+// @ts-ignore
 import WebSocket from "ws";
 import { env } from "./env";
 

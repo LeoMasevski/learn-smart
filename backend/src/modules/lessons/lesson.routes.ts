@@ -4,6 +4,8 @@ import {
   handleGetAllLessons,
   handleGetLessonById,
   handleGetLessonVariants,
+  handleGetLessonVariantByLearningType,
+  handleGetLessonsBySubject,
   handleGenerateLessonVariants,
   handleCreateLesson,
   handleUpdateLesson,
@@ -18,6 +20,24 @@ const router = Router();
 
 router.get("/", handleGetAllLessons);
 
+router.get(
+  "/subject/:subjectId",
+  requireAuth,
+  handleGetLessonsBySubject
+);
+
+router.get(
+  "/:id/variants",
+  requireAuth,
+  handleGetLessonVariants
+);
+
+router.get(
+  "/:id/variant/:learningType",
+  requireAuth,
+  handleGetLessonVariantByLearningType
+);
+
 router.post(
   "/",
   requireAuth,
@@ -25,8 +45,6 @@ router.post(
   uploadPdf.single("file"),
   handleCreateLesson
 );
-
-router.get("/:id/variants", handleGetLessonVariants);
 
 router.post(
   "/:id/generate-variants",
