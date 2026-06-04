@@ -22,6 +22,12 @@ type SuccessInfo = {
 
 const MAX_PDF_MB = 10;
 
+const VARIANT_META = {
+  VISUAL: { emoji: "👁️", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
+  AUDITORY: { emoji: "👂", label: "Slušni", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-200" },
+  KINESTHETIC: { emoji: "🤸", label: "Kinestetični", bg: "bg-emerald-50", color: "text-emerald-700", border: "border-emerald-200" },
+} as const;
+
 const LessonFormModal = ({
   subjects,
   lesson,
@@ -33,9 +39,7 @@ const LessonFormModal = ({
     lesson?.subject_id || defaultSubjectId || subjects[0]?.id || ""
   );
   const [materialType, setMaterialType] = useState<MaterialType>(
-    lesson?.title?.startsWith("[Dodatno gradivo]")
-      ? "Dodatno gradivo"
-      : "Prezentacija"
+    lesson?.title?.startsWith("[Dodatno gradivo]") ? "Dodatno gradivo" : "Prezentacija"
   );
 
   const cleanTitle = lesson?.title
@@ -43,23 +47,14 @@ const LessonFormModal = ({
     ?.replace("[Dodatno gradivo] ", "");
 
   const [title, setTitle] = useState(cleanTitle || "");
-  const [originalContent, setOriginalContent] = useState(
-    lesson?.original_content || ""
-  );
-  const [aiInstructions, setAiInstructions] = useState(
-    (lesson as any)?.ai_instructions || ""
-  );
-  const [showAiInstructions, setShowAiInstructions] = useState(
-    !!(lesson as any)?.ai_instructions
-  );
+  const [originalContent, setOriginalContent] = useState(lesson?.original_content || "");
+  const [aiInstructions, setAiInstructions] = useState((lesson as any)?.ai_instructions || "");
+  const [showAiInstructions, setShowAiInstructions] = useState(!!(lesson as any)?.ai_instructions);
 
-  // PDF state
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfError, setPdfError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
-  const [contentMode, setContentMode] = useState<"text" | "pdf">(
-    lesson ? "text" : "text"
-  );
+  const [contentMode, setContentMode] = useState<"text" | "pdf">("text");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
@@ -78,10 +73,6 @@ const LessonFormModal = ({
       return;
     }
     setPdfFile(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    validateAndSetFile(e.target.files?.[0]);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -180,68 +171,58 @@ const LessonFormModal = ({
       <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
         <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-xl text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-green-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
-              />
+            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Gradivo ustvarjeno!
-          </h2>
+
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Gradivo ustvarjeno!</h2>
+          <p className="text-slate-500 text-sm mb-4">AI je uspešno generiral učne variante.</p>
+
           {successInfo.pdf && (
-            <p className="text-sm text-slate-500 mb-1">
-              📄 PDF:{" "}
-              <span className="font-medium">{successInfo.pdf.originalName}</span>{" "}
-              · {(successInfo.pdf.size / 1024).toFixed(0)} KB ·{" "}
-              {successInfo.pdf.extractedTextLength} znakov
-            </p>
+            <div className="mb-4 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-600 flex items-center gap-3">
+              <span className="text-xl">📄</span>
+              <div className="text-left">
+                <p className="font-semibold text-slate-800">{successInfo.pdf.originalName}</p>
+                <p className="text-xs text-slate-400">
+                  {(successInfo.pdf.size / 1024).toFixed(0)} KB · {successInfo.pdf.extractedTextLength} znakov
+                </p>
+              </div>
+            </div>
           )}
+
           {successInfo.aiError ? (
-            <div className="mt-4 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-amber-700 text-sm">
-              <p className="font-semibold mb-1">AI generiranje ni uspelo</p>
-              <p className="text-amber-600">{successInfo.aiError}</p>
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-4 text-left">
+              <p className="font-semibold text-amber-700 mb-1">AI generiranje ni uspelo</p>
+              <p className="text-amber-600 text-sm">{successInfo.aiError}</p>
             </div>
           ) : (
-            <div className="mt-4 rounded-xl bg-violet-50 border border-violet-100 px-4 py-4">
-              <p className="text-violet-700 font-semibold text-lg">
+            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 px-4 py-5">
+              <p className="text-violet-700 font-bold text-lg mb-3">
                 {successInfo.variantsGenerated} variante generirane ✨
               </p>
-              <div className="flex justify-center gap-3 mt-3">
+              <div className="flex justify-center gap-2 flex-wrap">
                 {(["VISUAL", "AUDITORY", "KINESTHETIC"] as const).map((type) => {
-                  const labels = {
-                    VISUAL: { emoji: "👁️", label: "Vizualni" },
-                    AUDITORY: { emoji: "👂", label: "Slušni" },
-                    KINESTHETIC: { emoji: "🤸", label: "Kinestetični" },
-                  };
+                  const { emoji, label, bg, color, border } = VARIANT_META[type];
                   return (
                     <span
                       key={type}
-                      className="inline-flex items-center gap-1 bg-white border border-violet-200 text-violet-700 text-xs font-semibold px-3 py-1.5 rounded-full"
+                      className={`inline-flex items-center gap-1.5 ${bg} ${color} border ${border} text-xs font-semibold px-3 py-1.5 rounded-full`}
                     >
-                      {labels[type].emoji} {labels[type].label}
+                      {emoji} {label}
                     </span>
                   );
                 })}
               </div>
             </div>
           )}
-          <div className="flex gap-3 mt-6 justify-center">
-            <button
-              onClick={onSaved}
-              className="bg-violet-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-violet-700 transition"
-            >
-              Zapri
-            </button>
-          </div>
+
+          <button
+            onClick={onSaved}
+            className="mt-6 w-full bg-violet-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-violet-700 transition"
+          >
+            Zapri
+          </button>
         </div>
       </div>
     );
@@ -251,22 +232,30 @@ const LessonFormModal = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-xl my-4">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">
+        <h2 className="text-2xl font-bold text-slate-900 mb-1">
           {lesson ? "Uredi učno gradivo" : "Dodaj učno gradivo"}
         </h2>
+        <p className="text-sm text-slate-500 mb-6">
+          {lesson
+            ? "Posodobi vsebino gradiva."
+            : "Vsebina bo avtomatsko pretvorjena v 3 AI učne variante."}
+        </p>
 
         {error && (
-          <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-red-600 text-sm font-medium">
+          <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-red-600 text-sm font-medium flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+            </svg>
             {error}
           </div>
         )}
 
         {/* Subject */}
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-          Predmet
+          Predmet <span className="text-red-400">*</span>
         </label>
         <select
-          className="w-full border border-slate-300 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-violet-400"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 transition disabled:opacity-60"
           value={subjectId}
           onChange={(e) => setSubjectId(e.target.value)}
           disabled={saving}
@@ -290,9 +279,9 @@ const LessonFormModal = ({
               type="button"
               onClick={() => setMaterialType(type)}
               disabled={saving}
-              className={`rounded-2xl border px-4 py-3 font-semibold transition ${
+              className={`rounded-2xl border-2 px-4 py-3 font-semibold transition text-sm ${
                 materialType === type
-                  ? "border-violet-600 bg-violet-50 text-violet-700"
+                  ? "border-violet-500 bg-violet-50 text-violet-700"
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
@@ -303,10 +292,10 @@ const LessonFormModal = ({
 
         {/* Title */}
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-          Naslov gradiva
+          Naslov gradiva <span className="text-red-400">*</span>
         </label>
         <input
-          className="w-full border border-slate-300 rounded-xl px-4 py-3 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 transition disabled:opacity-60"
           placeholder="npr. Uvod v Python"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -317,19 +306,19 @@ const LessonFormModal = ({
         {!lesson && (
           <>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Vsebina
+              Vsebina <span className="text-red-400">*</span>
             </label>
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-4 p-1 bg-slate-100 rounded-xl w-fit">
               {(["text", "pdf"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setContentMode(mode)}
                   disabled={saving}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition ${
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                     contentMode === mode
-                      ? "border-violet-600 bg-violet-50 text-violet-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                      ? "bg-white text-violet-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   {mode === "text" ? "✍️ Vnos besedila" : "📎 Naloži PDF"}
@@ -339,7 +328,7 @@ const LessonFormModal = ({
 
             {contentMode === "text" ? (
               <textarea
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 min-h-40 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 min-h-40 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y transition disabled:opacity-60"
                 placeholder="Vsebina učnega gradiva kot tekst..."
                 value={originalContent}
                 onChange={(e) => setOriginalContent(e.target.value)}
@@ -348,15 +337,13 @@ const LessonFormModal = ({
             ) : (
               <div className="mb-5">
                 {pdfFile ? (
-                  <div className="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
+                  <div className="flex items-center justify-between bg-violet-50 border-2 border-violet-200 rounded-2xl px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">📄</span>
+                      <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center text-xl">📄</div>
                       <div>
-                        <p className="font-semibold text-slate-800 text-sm">
-                          {pdfFile.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {(pdfFile.size / 1024).toFixed(0)} KB
+                        <p className="font-semibold text-slate-800 text-sm">{pdfFile.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {(pdfFile.size / 1024).toFixed(0)} KB · PDF
                         </p>
                       </div>
                     </div>
@@ -364,9 +351,11 @@ const LessonFormModal = ({
                       type="button"
                       onClick={removePdf}
                       disabled={saving}
-                      className="text-slate-400 hover:text-red-500 transition text-xl font-bold leading-none"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
                     >
-                      ×
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 ) : (
@@ -375,37 +364,36 @@ const LessonFormModal = ({
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={() => !saving && fileInputRef.current?.click()}
-                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl px-6 py-8 cursor-pointer transition ${
+                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl px-6 py-10 cursor-pointer transition ${
                       saving
                         ? "opacity-50 cursor-not-allowed border-slate-200"
                         : isDragging
-                        ? "border-violet-500 bg-violet-100"
+                        ? "border-violet-500 bg-violet-50 scale-[1.01]"
                         : "border-slate-300 hover:border-violet-400 hover:bg-violet-50"
                     }`}
                   >
-                    <span className="text-3xl mb-2">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-3 transition ${isDragging ? "bg-violet-100" : "bg-slate-100"}`}>
                       {isDragging ? "📂" : "📁"}
-                    </span>
-                    <span className="text-sm font-semibold text-slate-700">
-                      {isDragging
-                        ? "Spusti PDF sem"
-                        : "Klikni ali povleci PDF sem"}
-                    </span>
-                    <span className="text-xs text-slate-400 mt-1">
-                      Maks. {MAX_PDF_MB} MB · samo PDF
-                    </span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {isDragging ? "Spusti PDF sem" : "Klikni ali povleci PDF sem"}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">Maks. {MAX_PDF_MB} MB · samo PDF</p>
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="application/pdf"
                       className="hidden"
-                      onChange={handleFileChange}
+                      onChange={(e) => validateAndSetFile(e.target.files?.[0])}
                       disabled={saving}
                     />
                   </div>
                 )}
                 {pdfError && (
-                  <p className="mt-2 text-sm text-red-600 font-medium">
+                  <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+                    </svg>
                     {pdfError}
                   </p>
                 )}
@@ -421,7 +409,7 @@ const LessonFormModal = ({
               Vsebina gradiva
             </label>
             <textarea
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 min-h-40 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y"
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 min-h-40 mb-5 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y transition disabled:opacity-60"
               placeholder="Vsebina učnega gradiva kot tekst..."
               value={originalContent}
               onChange={(e) => setOriginalContent(e.target.value)}
@@ -436,36 +424,59 @@ const LessonFormModal = ({
             type="button"
             onClick={() => setShowAiInstructions((v) => !v)}
             disabled={saving}
-            className="flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900 transition"
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition ${
+              showAiInstructions
+                ? "border-violet-200 bg-violet-50 text-violet-700"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+            }`}
           >
-            <span
-              className={`inline-block transition-transform ${
-                showAiInstructions ? "rotate-90" : ""
-              }`}
-            >
-              ▶
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              🤖 AI navodila
+              <span className={`text-xs font-normal ${showAiInstructions ? "text-violet-400" : "text-slate-400"}`}>
+                (neobvezno)
+              </span>
             </span>
-            🤖 AI navodila (neobvezno)
+            <svg
+              className={`w-4 h-4 transition-transform ${showAiInstructions ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
+
           {showAiInstructions && (
-            <div className="mt-3">
-              <p className="text-xs text-slate-500 mb-2">
-                Napiši posebna navodila za AI generiranje (npr. "Poudarek na
-                matematičnih formulah" ali "Napiši primere iz biologije"). Maks.
-                1000 znakov.
+            <div className="mt-2 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                Napiši posebna navodila za AI generiranje, npr. "Poudarek na matematičnih formulah" ali "Napiši primere iz biologije". Maks. 1000 znakov.
               </p>
               <textarea
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 min-h-24 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y"
+                className="w-full border border-violet-200 bg-white rounded-xl px-4 py-3 min-h-24 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y transition disabled:opacity-60"
                 placeholder="npr. Vključi čim več vizualnih analogij in ne predpostavljaj predznanja..."
                 value={aiInstructions}
-                onChange={(e) =>
-                  setAiInstructions(e.target.value.slice(0, 1000))
-                }
+                onChange={(e) => setAiInstructions(e.target.value.slice(0, 1000))}
                 disabled={saving}
               />
-              <p className="text-right text-xs text-slate-400 mt-1">
-                {aiInstructions.length} / 1000
-              </p>
+              <div className="flex justify-between items-center mt-1.5">
+                <div className="flex gap-2 flex-wrap">
+                  {["Vizualne analogije", "Brez predznanja", "Matematične formule"].map((hint) => (
+                    <button
+                      key={hint}
+                      type="button"
+                      onClick={() => setAiInstructions((v: string) => (v ? `${v}, ${hint}` : hint).slice(0, 1000))}
+                      disabled={saving}
+                      className="text-xs px-2.5 py-1 rounded-full bg-white border border-violet-200 text-violet-600 hover:bg-violet-50 transition font-medium"
+                    >
+                      + {hint}
+                    </button>
+                  ))}
+                </div>
+                <p className={`text-xs font-medium ${aiInstructions.length > 900 ? "text-amber-500" : "text-slate-400"}`}>
+                  {aiInstructions.length} / 1000
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -482,37 +493,23 @@ const LessonFormModal = ({
           <button
             onClick={saveLesson}
             disabled={saving}
-            className="bg-violet-600 text-white px-5 py-3 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed hover:bg-violet-700 transition flex items-center gap-2"
+            className="bg-violet-600 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed hover:bg-violet-700 transition flex items-center gap-2"
           >
             {saving ? (
               <>
-                <svg
-                  className="animate-spin w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  />
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                {contentMode === "pdf" && !lesson
-                  ? "Ekstrakcija PDF + AI..."
-                  : "Generiram variante..."}
+                {contentMode === "pdf" && !lesson ? "Ekstrakcija PDF + AI..." : "Generiram variante..."}
               </>
             ) : lesson ? (
               "Shrani spremembe"
             ) : (
-              "Ustvari in generiraj ✨"
+              <>
+                Ustvari in generiraj
+                <span className="text-violet-200">✨</span>
+              </>
             )}
           </button>
         </div>
