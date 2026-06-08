@@ -34,6 +34,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -47,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading: true,
   });
 
-  // Ob zagonu preveri token in naloži profil
   useEffect(() => {
     const token = localStorage.getItem("ls_token");
     if (!token) {
@@ -74,6 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("ls_token");
       setState({ user: null, profile: null, token: null, isLoading: false });
     }
+  }
+
+  async function refreshProfile() {
+    const token = localStorage.getItem("ls_token");
+    if (!token) return;
+    await fetchMe(token);
   }
 
   async function login(email: string, password: string) {
@@ -106,8 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || data.message || "Napaka pri registraciji" };
-
-      // Po registraciji avtomatska prijava
       return await login(email, password);
     } catch {
       return { error: "Strežnik ni dosegljiv" };
@@ -126,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        refreshProfile,
         isAuthenticated: !!state.user,
       }}
     >

@@ -1,119 +1,129 @@
 import { useEffect, useState } from "react";
-import "../styles/StudentDashboard.css";
-
 import { api } from "../api/api.tsx";
 import { useAuth } from "../context/AuthContext";
 import LessonRenderer from "../components/lesson/LessonRenderer";
-import SubjectDetailPage from "../components/student/SubjectDetailPage";
+import StudentProgress from "./StudentProgress.tsx";
 
 import type { StudentSubject, StudentLesson, LessonVariant } from "../types/student";
 
-type ViewType = "subjects" | "allSubjects" | "subjectDetail" | "lesson";
-type MainPageType = "predmeti" | "vsi-predmeti" | "profil";
+type ViewType = "subjects" | "allSubjects" | "lesson";
+type MainPageType = "predmeti" | "vsi-predmeti" | "napredek" | "profil";
+type LearningTypeKey = "VISUAL" | "AUDITORY" | "KINESTHETIC";
 
 const SUBJECT_COLORS = ["#6d4cff", "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 const SUBJECT_ICONS  = ["📘", "💻", "🧠", "🎨", "🔬", "📐"];
 
-export default function StudentDashboard() {
-  const { profile, logout } = useAuth();
+function getLearningTypeUI(lt: LearningTypeKey) {
+  if (lt === "VISUAL")      return { label: "Vizualni učenec",      icon: "👁️", desc: "Vsebina z diagrami, tabelami in barvnimi poudarki.", color: "#6c63ff", bg: "#f5f3ff", border: "#ddd6fe" };
+  if (lt === "AUDITORY")    return { label: "Slušni učenec",        icon: "🎧", desc: "Narativne razlage in analogije brez slik.",           color: "#0ea5e9", bg: "#e0f2fe", border: "#bae6fd" };
+  return                           { label: "Kinestetični učenec",  icon: "🤸", desc: "Praktični primeri in primerjave iz življenja.",        color: "#10b981", bg: "#dcfce7", border: "#bbf7d0" };
+}
 
-  const [mySubjects, setMySubjects]       = useState<StudentSubject[]>([]);
-  const [allSubjects, setAllSubjects]     = useState<StudentSubject[]>([]);
-  const [enrollingId, setEnrollingId]     = useState<string | null>(null);
-  const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
+function SidebarBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`w-full flex items-center text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+        active
+          ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200"
+          : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function StudentDashboard() {
+  const { profile, logout, refreshProfile } = useAuth();
+
+  const [mySubjects, setMySubjects]         = useState<StudentSubject[]>([]);
+  const [allSubjects, setAllSubjects]       = useState<StudentSubject[]>([]);
+  const [enrollingId, setEnrollingId]       = useState<string | null>(null);
+  const [enrollSuccess, setEnrollSuccess]   = useState<string | null>(null);
 
   const [selectedSubject, setSelectedSubject] = useState<StudentSubject | null>(null);
-  const [lessons, setLessons]             = useState<StudentLesson[]>([]);
-  const [selectedLesson, setSelectedLesson]   = useState<StudentLesson | null>(null);
-  const [activeVariant, setActiveVariant] = useState<LessonVariant | null>(null);
+  const [lessons, setLessons]               = useState<StudentLesson[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<StudentLesson | null>(null);
+  const [activeVariant, setActiveVariant]   = useState<LessonVariant | null>(null);
 
-  const [view, setView]           = useState<ViewType>("subjects");
-  const [mainPage, setMainPage]   = useState<MainPageType>("predmeti");
-  const [showMenu, setShowMenu]   = useState(false);
+  const [view, setView]         = useState<ViewType>("subjects");
+  const [mainPage, setMainPage] = useState<MainPageType>("predmeti");
+  const [showMenu, setShowMenu] = useState(false);
 
-  const [loadingMy,     setLoadingMy]     = useState(false);
-  const [loadingAll,    setLoadingAll]    = useState(false);
+  const [loadingMy,      setLoadingMy]      = useState(false);
+  const [loadingAll,     setLoadingAll]     = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [loadingVariant, setLoadingVariant] = useState(false);
-  const [error, setError]         = useState("");
+  const [error, setError]                   = useState("");
+
+  const [changingLT, setChangingLT] = useState(false);
+  const [ltLoading,  setLtLoading]  = useState(false);
+  const [ltError,    setLtError]    = useState("");
+  const [ltSuccess,  setLtSuccess]  = useState("");
 
   useEffect(() => { fetchMySubjects(); }, []);
 
-  // Api
 
   async function fetchMySubjects() {
     try {
-      setLoadingMy(true);
-      setError("");
+      setLoadingMy(true); setError("");
       const res = await api.get("/user-subjects/my-subjects");
       setMySubjects(res.data);
     } catch (e: any) {
       setError(e?.response?.data?.message || "Napaka pri nalaganju predmetov.");
-    } finally {
-      setLoadingMy(false);
-    }
+    } finally { setLoadingMy(false); }
   }
 
   async function fetchAllSubjects() {
     try {
-      setLoadingAll(true);
-      setError("");
+      setLoadingAll(true); setError("");
       const res = await api.get("/subjects");
       setAllSubjects(res.data);
     } catch (e: any) {
       setError(e?.response?.data?.message || "Napaka pri nalaganju predmetov.");
-    } finally {
-      setLoadingAll(false);
-    }
+    } finally { setLoadingAll(false); }
   }
 
   async function enrollInSubject(subjectId: string) {
     try {
-      setEnrollingId(subjectId);
-      setEnrollSuccess(null);
+      setEnrollingId(subjectId); setEnrollSuccess(null);
       await api.post(`/user-subjects/${subjectId}/enroll`);
       setEnrollSuccess(subjectId);
-      // refresh my subjects
       await fetchMySubjects();
     } catch (e: any) {
       setError(e?.response?.data?.message || "Napaka pri vpisu v predmet.");
-    } finally {
-      setEnrollingId(null);
-    }
+    } finally { setEnrollingId(null); }
   }
 
   async function openSubject(subject: StudentSubject) {
+    if (!profile?.learning_type) { setError("Najprej moraš rešiti kviz učnega tipa."); return; }
     try {
-      setSelectedSubject(subject);
-      setSelectedLesson(null);
-      setActiveVariant(null);
-      setLoadingLessons(true);
-      setError("");
-      setView("subjectDetail");
+      setSelectedSubject(subject); setSelectedLesson(null);
+      setActiveVariant(null); setLoadingLessons(true); setError("");
       const res = await api.get(`/lessons/subject/${subject.id}`);
-      setLessons(res.data);
+      const subjectLessons: StudentLesson[] = res.data;
+      setLessons(subjectLessons);
+      if (subjectLessons.length === 0) { setError("Za ta predmet še ni dodanih lekcij."); return; }
+      const first = subjectLessons[0];
+      setSelectedLesson(first);
+      setView("lesson");
+      const variantRes = await api.get(`/lessons/${first.id}/variant/${profile.learning_type}`);
+      setActiveVariant(variantRes.data);
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Napaka pri nalaganju lekcij.");
-    } finally {
-      setLoadingLessons(false);
-    }
+      setError(e?.response?.data?.message || "Napaka pri nalaganju lekcije.");
+    } finally { setLoadingLessons(false); }
   }
 
   async function openLesson(lesson: StudentLesson) {
-    if (!profile?.learning_type) { setError("Najprej določi učni tip."); return; }
+    if (!profile?.learning_type) { setError("Najprej moraš rešiti kviz učnega tipa."); return; }
     try {
-      setSelectedLesson(lesson);
-      setActiveVariant(null);
-      setLoadingVariant(true);
-      setError("");
-      setView("lesson");
+      setSelectedLesson(lesson); setActiveVariant(null);
+      setLoadingVariant(true); setError("");
       const res = await api.get(`/lessons/${lesson.id}/variant/${profile.learning_type}`);
       setActiveVariant(res.data);
     } catch (e: any) {
       setError(e?.response?.data?.message || "Napaka pri nalaganju lekcije.");
-    } finally {
-      setLoadingVariant(false);
-    }
+    } finally { setLoadingVariant(false); }
   }
 
   async function navigateLesson(dir: "prev" | "next") {
@@ -123,7 +133,19 @@ export default function StudentDashboard() {
     if (next >= 0 && next < lessons.length) await openLesson(lessons[next]);
   }
 
-  // Nav
+  async function updateLearningType(lt: LearningTypeKey) {
+    try {
+      setLtLoading(true); setLtError(""); setLtSuccess("");
+      await api.patch("/users/learning-type", { learningType: lt.toLowerCase() });
+      await refreshProfile();
+      setLtSuccess("Učni tip uspešno posodobljen.");
+      setChangingLT(false);
+    } catch (e: any) {
+      setLtError(e?.response?.data?.message || "Napaka pri posodobitvi učnega tipa.");
+    } finally { setLtLoading(false); }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   function goHome() {
     setView("subjects"); setMainPage("predmeti");
@@ -136,73 +158,21 @@ export default function StudentDashboard() {
     if (allSubjects.length === 0) fetchAllSubjects();
   }
 
-  function goToSubjectDetail() {
-    setView("subjectDetail"); setSelectedLesson(null); setActiveVariant(null); setError("");
-  }
-
   function getInitials() {
     return profile?.full_name?.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase() ?? "U";
   }
 
   function learningLabel() {
     if (!profile?.learning_type) return "Ni določen";
-    return { VISUAL: "Vizualni", AUDITORY: "Slušni", KINESTHETIC: "Kinestetični" }[profile.learning_type];
+    return getLearningTypeUI(profile.learning_type).label;
   }
 
   const isEnrolled = (id: string) => mySubjects.some(s => s.id === id);
   const lessonIdx  = selectedLesson ? lessons.findIndex(l => l.id === selectedLesson.id) : -1;
   const hasPrev    = lessonIdx > 0;
   const hasNext    = lessonIdx < lessons.length - 1;
+  const inLesson   = view === "lesson";
 
-  // Sidebar
-
-  const Sidebar = () => (
-    <aside className="w-60 shrink-0 min-h-screen bg-white border-r border-gray-100 flex flex-col px-4 py-8 gap-1">
-      <button onClick={goHome} className="text-violet-600 font-extrabold text-lg mb-6 text-left hover:opacity-75 transition-opacity">
-        🎓 LearnSmart
-      </button>
-
-      {view === "subjects" || view === "allSubjects" || view === "lesson" && false ? (
-        <>
-          <SidebarBtn active={mainPage === "predmeti"} onClick={goHome}>
-            📚 Moji predmeti
-          </SidebarBtn>
-          <SidebarBtn active={mainPage === "vsi-predmeti"} onClick={goToAllSubjects}>
-            🌐 Vsi predmeti
-          </SidebarBtn>
-          <div className="h-px bg-gray-100 my-1" />
-          <SidebarBtn active={mainPage === "profil"} onClick={() => { setView("subjects"); setMainPage("profil"); }}>
-            👤 Profil
-          </SidebarBtn>
-        </>
-      ) : (
-        <>
-          <button onClick={goHome} className="text-sm font-semibold text-violet-600 text-left mb-2 hover:opacity-70 transition-opacity">
-            ← Predmeti
-          </button>
-          <div className="h-px bg-gray-100 my-1" />
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 mt-2 mb-1">Lekcije</p>
-          {lessons.map((l, i) => {
-            const active = selectedLesson?.id === l.id;
-            return (
-              <button key={l.id} onClick={() => openLesson(l)}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
-                  active ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white" : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
-                  active ? "bg-white/25 text-white" : "bg-gray-100 text-gray-400"
-                }`}>{i + 1}</span>
-                <span className="truncate">{l.title}</span>
-              </button>
-            );
-          })}
-        </>
-      )}
-    </aside>
-  );
-
-  // Topbar
 
   const Topbar = () => (
     <div className="flex justify-end items-center h-14 mb-2 relative">
@@ -225,10 +195,13 @@ export default function StudentDashboard() {
     </div>
   );
 
-  // Moji predmeti
 
   const MySubjectsView = () => {
-    if (loadingMy) return <p className="text-sm text-gray-400 mt-4">Nalagam predmete...</p>;
+    if (loadingMy) return (
+      <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 mt-4">
+        {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-gradient-to-r from-violet-50 to-gray-100 animate-pulse" />)}
+      </div>
+    );
 
     if (mySubjects.length === 0) return (
       <div className="max-w-4xl mx-auto w-full">
@@ -250,15 +223,12 @@ export default function StudentDashboard() {
         <h1 className="text-3xl font-extrabold text-gray-900 mb-1">Moji predmeti</h1>
         <p className="text-gray-400 text-sm mb-6">Izberi predmet in začni s prilagojenim učenjem.</p>
 
-        {/* Hero */}
         <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-400 rounded-2xl p-7 mb-6 flex items-center justify-between shadow-lg shadow-violet-200">
           <div className="absolute -right-16 -top-16 w-56 h-56 bg-white/10 rounded-full pointer-events-none" />
           <div className="relative z-10">
             <p className="text-violet-200 text-sm font-semibold mb-1">Dobrodošel nazaj 👋</p>
             <h2 className="text-2xl font-extrabold text-white mb-1">Nadaljuj z učenjem</h2>
-            <p className="text-violet-100 text-sm">
-              Vsebina je prilagojena: <strong>{learningLabel()}</strong>
-            </p>
+            <p className="text-violet-100 text-sm">Vsebina je prilagojena: <strong>{learningLabel()}</strong></p>
           </div>
           <button onClick={() => openSubject(mySubjects[0])}
             className="relative z-10 bg-white text-violet-700 font-extrabold text-sm px-5 py-3 rounded-xl hover:bg-violet-50 transition-colors shadow-sm whitespace-nowrap"
@@ -270,10 +240,9 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {mySubjects.map((subject, i) => (
             <div key={subject.id} onClick={() => openSubject(subject)}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
-              <div className="h-24 flex items-center justify-between px-5"
-                style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}>
+              <div className="h-24 flex items-center justify-between px-5" style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}>
                 <span className="text-3xl">{SUBJECT_ICONS[i % SUBJECT_ICONS.length]}</span>
                 <span className="text-xs font-extrabold text-white/80 bg-white/20 px-2.5 py-1 rounded-full">AI ✨</span>
               </div>
@@ -291,13 +260,11 @@ export default function StudentDashboard() {
     );
   };
 
-  // Vsi predmeti
 
   const AllSubjectsView = () => {
     if (loadingAll) return (
-      <div className="max-w-4xl mx-auto w-full flex items-center gap-3 mt-6">
-        <div className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-violet-500 animate-spin" />
-        <p className="text-gray-400 text-sm">Nalagam predmete...</p>
+      <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 mt-4">
+        {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-gradient-to-r from-violet-50 to-gray-100 animate-pulse" />)}
       </div>
     );
 
@@ -316,39 +283,25 @@ export default function StudentDashboard() {
             {allSubjects.map((subject, i) => {
               const enrolled  = isEnrolled(subject.id);
               const enrolling = enrollingId === subject.id;
-              const success   = enrollSuccess === subject.id;
-
               return (
-                <div key={subject.id}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex items-stretch"
-                >
-                  {/* Color strip */}
+                <div key={subject.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex items-stretch">
                   <div className="w-2 shrink-0" style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }} />
-
-                  {/* Content */}
                   <div className="flex-1 p-5 flex items-center gap-5">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
                       style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] + "22" }}>
                       {SUBJECT_ICONS[i % SUBJECT_ICONS.length]}
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <h3 className="font-extrabold text-gray-900 text-base">{subject.name}</h3>
-                      <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
-                        {subject.description || "Brez opisa predmeta."}
-                      </p>
+                      <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">{subject.description || "Brez opisa predmeta."}</p>
                     </div>
-
-                    {/* Enroll button */}
                     <div className="shrink-0 ml-4">
                       {enrolled ? (
                         <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-bold px-4 py-2.5 rounded-xl">
-                          <span>✓</span> Vpisan
+                          ✓ Vpisan
                         </div>
                       ) : (
-                        <button
-                          onClick={() => enrollInSubject(subject.id)}
-                          disabled={enrolling}
+                        <button onClick={() => enrollInSubject(subject.id)} disabled={enrolling}
                           className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all ${
                             enrolling
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -356,13 +309,8 @@ export default function StudentDashboard() {
                           }`}
                         >
                           {enrolling ? (
-                            <>
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 border-t-gray-500 animate-spin" />
-                              Vpisujem...
-                            </>
-                          ) : (
-                            <>+ Vpiši se</>
-                          )}
+                            <><div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 border-t-gray-500 animate-spin" />Vpisujem...</>
+                          ) : <>+ Vpiši se</>}
                         </button>
                       )}
                     </div>
@@ -373,7 +321,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Go to my subjects CTA */}
         {mySubjects.length > 0 && (
           <div className="mt-6 p-5 bg-violet-50 border border-violet-100 rounded-2xl flex items-center justify-between">
             <p className="text-sm text-violet-700 font-semibold">
@@ -390,31 +337,13 @@ export default function StudentDashboard() {
     );
   };
 
-  const ProfileView = () => (
-    <div className="max-w-4xl mx-auto w-full">
-      <div className="bg-white rounded-2xl border border-gray-100 p-8">
-        <h2 className="font-extrabold text-gray-900 text-lg mb-1">Profil</h2>
-        <p className="text-gray-400 text-sm mb-6">Osnovni podatki študenta.</p>
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-violet-600 text-white text-xl font-extrabold flex items-center justify-center shrink-0">
-            {getInitials()}
-          </div>
-          <div>
-            <h3 className="text-lg font-extrabold text-gray-900">{profile?.full_name}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Učni tip: <strong className="text-gray-700">{learningLabel()}</strong></p>
-            <p className="text-sm text-gray-500">Vpisani predmeti: <strong className="text-gray-700">{mySubjects.length}</strong></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const LessonView = () => (
     <div className="max-w-4xl mx-auto w-full">
       <div className="flex items-center gap-1.5 text-xs mb-2 flex-wrap">
-        <button onClick={goHome} className="text-violet-600 font-semibold hover:underline hover:opacity-70">🏠 Predmeti</button>
+        <button onClick={goHome} className="text-violet-600 font-semibold hover:underline">🏠 Predmeti</button>
         <span className="text-gray-300">›</span>
-        <button onClick={goToSubjectDetail} className="text-violet-600 font-semibold hover:underline hover:opacity-70">{selectedSubject?.name}</button>
+        <span className="text-gray-400">{selectedSubject?.name}</span>
         <span className="text-gray-300">›</span>
         <span className="text-gray-700 font-bold truncate max-w-[180px]">{selectedLesson?.title}</span>
       </div>
@@ -435,6 +364,13 @@ export default function StudentDashboard() {
         <div className="bg-white rounded-2xl border border-gray-100 p-8 flex items-center gap-4">
           <div className="w-6 h-6 rounded-full border-2 border-gray-200 border-t-violet-500 animate-spin shrink-0" />
           <p className="text-gray-400 text-sm">Nalagam prilagojeno lekcijo...</p>
+        </div>
+      )}
+
+      {!loadingVariant && !activeVariant && !error && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+          <span className="text-4xl block mb-3">📄</span>
+          <p className="text-gray-400 text-sm">Za to lekcijo še ni generirane vsebine.</p>
         </div>
       )}
 
@@ -459,7 +395,6 @@ export default function StudentDashboard() {
           >
             ← Prejšnja lekcija
           </button>
-
           <div className="flex items-center gap-2">
             {lessons.map((l, i) => (
               <button key={l.id} onClick={() => openLesson(l)} title={l.title}
@@ -467,7 +402,6 @@ export default function StudentDashboard() {
               />
             ))}
           </div>
-
           <button onClick={() => navigateLesson("next")} disabled={!hasNext || loadingVariant}
             className={`px-5 py-3 rounded-xl text-sm font-bold transition-all ${
               hasNext && !loadingVariant
@@ -482,7 +416,96 @@ export default function StudentDashboard() {
     </div>
   );
 
-  const inLesson = view === "subjectDetail" || view === "lesson";
+
+  const ProfileView = () => (
+    <div className="max-w-4xl mx-auto w-full flex flex-col gap-5">
+      {/* Osnovni podatki */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-8">
+        <h2 className="font-extrabold text-gray-900 text-lg mb-1">Moj profil</h2>
+        <p className="text-gray-400 text-sm mb-6">Osebni podatki in nastavitve.</p>
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="w-16 h-16 rounded-full bg-violet-600 text-white text-xl font-extrabold flex items-center justify-center shrink-0">
+            {getInitials()}
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-gray-900">{profile?.full_name}</h3>
+            <p className="text-sm text-gray-500 mt-0.5">Vloga: <strong className="text-gray-700">Študent</strong></p>
+            <p className="text-sm text-gray-500">Vpisani predmeti: <strong className="text-gray-700">{mySubjects.length}</strong></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Učni tip */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-8">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+          <div>
+            <h2 className="font-extrabold text-gray-900 text-lg mb-1">Učni tip</h2>
+            <p className="text-gray-400 text-sm">Določa kako se prikažejo lekcije.</p>
+          </div>
+          {!changingLT && (
+            <button onClick={() => { setChangingLT(true); setLtError(""); setLtSuccess(""); }}
+              className="text-sm font-bold text-violet-600 bg-violet-50 border border-violet-200 px-4 py-2 rounded-xl hover:bg-violet-100 transition-colors"
+            >
+              ✏️ Spremeni
+            </button>
+          )}
+        </div>
+
+        {ltSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm font-semibold rounded-xl px-4 py-3 mb-4">✅ {ltSuccess}</div>}
+        {ltError   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl px-4 py-3 mb-4">⚠️ {ltError}</div>}
+
+        {!changingLT && profile?.learning_type && (() => {
+          const info = getLearningTypeUI(profile.learning_type!);
+          return (
+            <div className="flex items-center gap-4 p-5 rounded-2xl border" style={{ background: info.bg, borderColor: info.border }}>
+              <span className="text-4xl">{info.icon}</span>
+              <div>
+                <strong style={{ color: info.color }} className="text-base">{info.label}</strong>
+                <p className="text-gray-500 text-sm mt-1">{info.desc}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {!changingLT && !profile?.learning_type && (
+          <div className="text-center py-6 text-gray-400">
+            <span className="text-4xl block mb-2">❓</span>
+            <p className="text-sm">Učni tip še ni določen. Reši vprašalnik ob registraciji ali ga nastavi spodaj.</p>
+          </div>
+        )}
+
+        {changingLT && (
+          <div>
+            <p className="text-sm font-bold text-gray-700 mb-3">Izberi nov učni tip:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(["VISUAL", "AUDITORY", "KINESTHETIC"] as LearningTypeKey[]).map(key => {
+                const info    = getLearningTypeUI(key);
+                const current = profile?.learning_type === key;
+                return (
+                  <button key={key} onClick={() => updateLearningType(key)} disabled={ltLoading}
+                    className={`flex flex-col items-center gap-2 p-5 rounded-2xl border-2 text-center transition-all ${
+                      current ? "scale-[1.02] shadow-md" : "hover:-translate-y-0.5 hover:shadow-md"
+                    } ${ltLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                    style={{ borderColor: current ? info.color : "#e5e7eb", background: current ? info.bg : "white" }}
+                  >
+                    <span className="text-3xl">{info.icon}</span>
+                    <strong style={{ color: info.color }} className="text-sm">{info.label}</strong>
+                    <small className="text-gray-400 text-xs leading-relaxed">{info.desc}</small>
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={() => setChangingLT(false)}
+              className="mt-4 text-sm font-bold text-gray-500 bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              Prekliči
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
 
   return (
     <div className="flex w-full min-h-screen bg-gray-50">
@@ -503,6 +526,10 @@ export default function StudentDashboard() {
             </SidebarBtn>
             <SidebarBtn active={mainPage === "vsi-predmeti"} onClick={goToAllSubjects}>
               🌐 Vsi predmeti
+            </SidebarBtn>
+            <div className="h-px bg-gray-100 my-1" />
+            <SidebarBtn active={mainPage === "napredek"} onClick={() => setMainPage("napredek")}>
+              📊 Moj napredek
             </SidebarBtn>
             <div className="h-px bg-gray-100 my-1" />
             <SidebarBtn active={mainPage === "profil"} onClick={() => { setView("subjects"); setMainPage("profil"); }}>
@@ -538,41 +565,18 @@ export default function StudentDashboard() {
       <main className="flex-1 min-w-0 px-8 py-6">
         <Topbar />
 
-        {error && (view === "subjects" || view === "allSubjects") && (
+        {error && !inLesson && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 max-w-4xl mx-auto">
             <p className="text-red-600 text-sm font-medium">{error}</p>
           </div>
         )}
 
-        {view === "subjects"      && mainPage === "profil"       && <ProfileView />}
-        {view === "subjects"      && mainPage === "predmeti"     && <MySubjectsView />}
-        {view === "allSubjects"                                   && <AllSubjectsView />}
-        {view === "subjectDetail" && selectedSubject             && (
-          <SubjectDetailPage
-            subject={selectedSubject}
-            lessons={lessons}
-            selectedLesson={selectedLesson}
-            loadingLesson={loadingLessons}
-            onOpenLesson={openLesson}
-            onBack={goHome}
-          />
-        )}
-        {view === "lesson"                                        && <LessonView />}
+        {inLesson                        && <LessonView />}
+        {!inLesson && mainPage === "predmeti"     && <MySubjectsView />}
+        {!inLesson && mainPage === "vsi-predmeti" && <AllSubjectsView />}
+        {!inLesson && mainPage === "napredek"     && <StudentProgress />}
+        {!inLesson && mainPage === "profil"       && <ProfileView />}
       </main>
     </div>
-  );
-}
-
-function SidebarBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick}
-      className={`w-full flex items-center text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-        active
-          ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200"
-          : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
