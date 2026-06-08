@@ -40,3 +40,14 @@ pošiljanje multipart/form-data requesta
 prikaz uspešnega generiranja variant
 popravitev da ob log outu studenta ga da na prijavo page
 popravitev da tudi drag in PDF deluje
+
+1.6
+dodajanje Subject Detail Page tsx komponento
+
+3.6
+Posodabljanje Student dashboard za izgled
+Testiranje delovanja
+
+5.6
+Posodabljanje student dashboard da vidimo vse predmete
+vpis v predmete da deluje

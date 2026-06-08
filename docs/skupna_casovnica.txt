@@ -35,4 +35,25 @@ Poslan mail za trenutne funkcionalnosti
 Določitev da se ne dobimo da samo funkcionalnosti zrihtamo do nasledjič
 
 29.5.2026
-še pride
+Sestanek ob 9 online
+Kaj je še potrebno dodati:
+    na profilu za studenta zamenjava za tip
+    kviz za vsako lekcijo
+    prejšne verzije za profesorja 
+    dashboard za pregled rezulatov in profesorjem kako jim gre
+    igrifikacija
+    testiranje
+    spreminjanje za vsak tip
+    uporabniski scenarij za oba (profesor in student)
+
+Torek 2.6 ob 9 online da se dobimo
+
+2.6.2026
+Prestavitev sestanka na petek 5.6
+
+5.6.2026
+pogovor za nadaljevanje
+sprinte da oddamo
+čimveč implementirati kakor smo si zamislili
+spet pokazamo nasledni sprint, danes teden
+dogovor za 12.6 sestanek 8.00/8.15
