@@ -6,6 +6,7 @@ import {
   handleUpdateSubject,
   handleDeleteSubject,
 } from "./subject.controller";
+import { handleGetSubjectStudents, handleGetSubjectStudentProgress } from "../user-subjects/userSubject.controller";
 
 import { requireAuth } from "../../middleware/auth.middleware";
 import { requireRole } from "../../middleware/role.middleware";
@@ -13,6 +14,20 @@ import { requireRole } from "../../middleware/role.middleware";
 const router = Router();
 
 router.get("/", handleGetAllSubjects);
+
+router.get(
+  "/:id/students",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleGetSubjectStudents
+);
+
+router.get(
+  "/:id/student-progress",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleGetSubjectStudentProgress
+);
 
 router.get("/:id", handleGetSubjectById);
 

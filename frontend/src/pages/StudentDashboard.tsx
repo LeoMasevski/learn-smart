@@ -6,9 +6,10 @@ import { useAuth } from "../context/AuthContext";
 import LessonRenderer from "../components/lesson/LessonRenderer";
 import SubjectDetailPage from "../components/student/SubjectDetailPage";
 
-import type { StudentSubject, StudentLesson, LessonVariant } from "../types/student";
+import StudentQuizRunner from "../components/student/StudentQuizRunner";
+import type { StudentSubject, StudentLesson, LessonVariant, SubjectQuizForStudent } from "../types/student";
 
-type ViewType = "subjects" | "allSubjects" | "subjectDetail" | "lesson";
+type ViewType = "subjects" | "allSubjects" | "subjectDetail" | "lesson" | "quiz";
 type MainPageType = "predmeti" | "vsi-predmeti" | "profil";
 
 const SUBJECT_COLORS = ["#6d4cff", "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
@@ -20,13 +21,13 @@ export default function StudentDashboard() {
   const [mySubjects, setMySubjects]       = useState<StudentSubject[]>([]);
   const [allSubjects, setAllSubjects]     = useState<StudentSubject[]>([]);
   const [enrollingId, setEnrollingId]     = useState<string | null>(null);
-  const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
 
   const [selectedSubject, setSelectedSubject] = useState<StudentSubject | null>(null);
   const [lessons, setLessons]             = useState<StudentLesson[]>([]);
   const [selectedLesson, setSelectedLesson]   = useState<StudentLesson | null>(null);
   const [activeVariant, setActiveVariant] = useState<LessonVariant | null>(null);
 
+  const [activeQuiz, setActiveQuiz] = useState<SubjectQuizForStudent | null>(null);
   const [view, setView]           = useState<ViewType>("subjects");
   const [mainPage, setMainPage]   = useState<MainPageType>("predmeti");
   const [showMenu, setShowMenu]   = useState(false);
@@ -70,9 +71,7 @@ export default function StudentDashboard() {
   async function enrollInSubject(subjectId: string) {
     try {
       setEnrollingId(subjectId);
-      setEnrollSuccess(null);
       await api.post(`/user-subjects/${subjectId}/enroll`);
-      setEnrollSuccess(subjectId);
       // refresh my subjects
       await fetchMySubjects();
     } catch (e: any) {
@@ -116,6 +115,18 @@ export default function StudentDashboard() {
     }
   }
 
+  function openQuiz(quiz: SubjectQuizForStudent) {
+    setActiveQuiz(quiz);
+    setView("quiz");
+    setError("");
+  }
+
+  function closeQuiz() {
+    setActiveQuiz(null);
+    setView("subjectDetail");
+    setError("");
+  }
+
   async function navigateLesson(dir: "prev" | "next") {
     if (!selectedLesson) return;
     const idx  = lessons.findIndex(l => l.id === selectedLesson.id);
@@ -153,54 +164,6 @@ export default function StudentDashboard() {
   const lessonIdx  = selectedLesson ? lessons.findIndex(l => l.id === selectedLesson.id) : -1;
   const hasPrev    = lessonIdx > 0;
   const hasNext    = lessonIdx < lessons.length - 1;
-
-  // Sidebar
-
-  const Sidebar = () => (
-    <aside className="w-60 shrink-0 min-h-screen bg-white border-r border-gray-100 flex flex-col px-4 py-8 gap-1">
-      <button onClick={goHome} className="text-violet-600 font-extrabold text-lg mb-6 text-left hover:opacity-75 transition-opacity">
-        🎓 LearnSmart
-      </button>
-
-      {view === "subjects" || view === "allSubjects" || view === "lesson" && false ? (
-        <>
-          <SidebarBtn active={mainPage === "predmeti"} onClick={goHome}>
-            📚 Moji predmeti
-          </SidebarBtn>
-          <SidebarBtn active={mainPage === "vsi-predmeti"} onClick={goToAllSubjects}>
-            🌐 Vsi predmeti
-          </SidebarBtn>
-          <div className="h-px bg-gray-100 my-1" />
-          <SidebarBtn active={mainPage === "profil"} onClick={() => { setView("subjects"); setMainPage("profil"); }}>
-            👤 Profil
-          </SidebarBtn>
-        </>
-      ) : (
-        <>
-          <button onClick={goHome} className="text-sm font-semibold text-violet-600 text-left mb-2 hover:opacity-70 transition-opacity">
-            ← Predmeti
-          </button>
-          <div className="h-px bg-gray-100 my-1" />
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 mt-2 mb-1">Lekcije</p>
-          {lessons.map((l, i) => {
-            const active = selectedLesson?.id === l.id;
-            return (
-              <button key={l.id} onClick={() => openLesson(l)}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
-                  active ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white" : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
-                  active ? "bg-white/25 text-white" : "bg-gray-100 text-gray-400"
-                }`}>{i + 1}</span>
-                <span className="truncate">{l.title}</span>
-              </button>
-            );
-          })}
-        </>
-      )}
-    </aside>
-  );
 
   // Topbar
 
@@ -316,7 +279,6 @@ export default function StudentDashboard() {
             {allSubjects.map((subject, i) => {
               const enrolled  = isEnrolled(subject.id);
               const enrolling = enrollingId === subject.id;
-              const success   = enrollSuccess === subject.id;
 
               return (
                 <div key={subject.id}
@@ -554,10 +516,16 @@ export default function StudentDashboard() {
             selectedLesson={selectedLesson}
             loadingLesson={loadingLessons}
             onOpenLesson={openLesson}
+            onStartQuiz={openQuiz}
             onBack={goHome}
           />
         )}
         {view === "lesson"                                        && <LessonView />}
+        {view === "quiz" && activeQuiz && (
+          <div className="max-w-2xl mx-auto w-full pt-2">
+            <StudentQuizRunner quiz={activeQuiz} onBack={closeQuiz} />
+          </div>
+        )}
       </main>
     </div>
   );
