@@ -6,6 +6,8 @@ import quizRoutes from "../modules/quizzes/quiz.routes";
 import dashboardRoutes from "../modules/dashboards/dashboard.routes";
 import subjectRoutes from "../modules/subjects/subject.routes";
 import userSubjectRoutes from "../modules/user-subjects/userSubject.routes";
+import subjectQuizRoutes from "../modules/subject-quizzes/subjectQuiz.routes";
+import quizAttemptRoutes from "../modules/quiz-attempts/quizAttempt.routes";
 
 const router = Router();
 
@@ -19,6 +21,8 @@ router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/lessons", lessonRoutes);
 router.use("/quizzes", quizRoutes);
+router.use("/subject-quizzes", subjectQuizRoutes);
+router.use("/quiz-attempts", quizAttemptRoutes);
 router.use("/dashboards", dashboardRoutes);
 router.use("/subjects", subjectRoutes);
 router.use("/user-subjects", userSubjectRoutes);

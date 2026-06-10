@@ -16,3 +16,54 @@ export type Lesson = {
   created_at?: string;
   updated_at?: string;
 };
+
+export type LearningType = "VISUAL" | "AUDITORY" | "KINESTHETIC";
+
+export type QuestionType = "multiple_choice" | "true_false" | "mixed";
+export type QuizStatus = "draft" | "generating" | "ready";
+
+export type QuizQuestion = {
+  id: string;
+  quiz_id: string;
+  question: string;
+  options: string[] | null;
+  correct_answer: string;
+  question_type: "multiple_choice" | "true_false";
+  explanation: string | null;
+  order_index: number;
+};
+
+export type SubjectQuiz = {
+  id: string;
+  subject_id: string;
+  title: string;
+  time_limit_minutes: number;
+  question_count: number;
+  question_type: QuestionType;
+  status: QuizStatus;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  quiz_lessons?: { lesson_id: string; lessons: { id: string; title: string } | null }[];
+  quiz_questions?: QuizQuestion[];
+};
+
+export type StudentInSubject = {
+  id: string;
+  full_name: string;
+  learning_type: LearningType | null;
+  enrolled_at: string;
+};
+
+export type LearningTypeCounts = {
+  VISUAL: number;
+  AUDITORY: number;
+  KINESTHETIC: number;
+  UNKNOWN: number;
+};
+
+export type SubjectStudentsResponse = {
+  total: number;
+  students: StudentInSubject[];
+  learningTypeCounts: LearningTypeCounts;
+};
