@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { StudentSubject, StudentLesson, SubjectQuizForStudent } from "../../types/student";
 import StudentQuizList from "./StudentQuizList";
+import { getSubjectIcon } from "../../utils/subjectIcons";
 
 const LESSON_ICONS = ["📖", "🧠", "💡", "🔬", "📐", "🎯", "🗂️", "🧩"];
 
@@ -24,6 +25,7 @@ export default function SubjectDetailPage({
   onBack,
 }: Props) {
   const [tab, setTab] = useState<"lekcije" | "kvizi">("lekcije");
+  const SubjectIcon = getSubjectIcon(subject.name);
 
   return (
     <div className="max-w-4xl mx-auto w-full">
@@ -38,7 +40,9 @@ export default function SubjectDetailPage({
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-400 p-8 mb-6 shadow-lg shadow-violet-200 flex items-center gap-6">
         <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10 pointer-events-none" />
-        <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl shrink-0">📚</div>
+        <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+          <SubjectIcon className="w-8 h-8 text-white" strokeWidth={2.25} />
+        </div>
         <div className="relative z-10">
           <h1 className="text-2xl font-extrabold text-white mb-1">{subject.name}</h1>
           <p className="text-violet-100 text-sm mb-3">{subject.description || "Brez opisa predmeta."}</p>

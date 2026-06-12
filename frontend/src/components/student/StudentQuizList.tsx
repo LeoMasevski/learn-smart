@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/api";
 import type { SubjectQuizForStudent, QuizAttempt } from "../../types/student";
+import StudentQuizResults from "./StudentQuizResults";
 
 type Props = {
   subjectId: string;
@@ -27,6 +28,7 @@ function QuizCard({
   onStart: () => void;
 }) {
   const [attempt, setAttempt] = useState<QuizAttempt | null | undefined>(undefined);
+  const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
     api
@@ -85,16 +87,26 @@ function QuizCard({
         </div>
 
         {/* Action */}
-        <button
-          onClick={onStart}
-          className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
-            hasAttempt
-              ? "bg-gray-100 hover:bg-violet-50 text-gray-600 hover:text-violet-700 border border-gray-200"
-              : "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200 hover:shadow-lg hover:-translate-y-px"
-          }`}
-        >
-          {hasAttempt ? "Ponovi" : "Začni"}
-        </button>
+        <div className="flex flex-col gap-2 shrink-0">
+          <button
+            onClick={onStart}
+            className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+              hasAttempt
+                ? "bg-gray-100 hover:bg-violet-50 text-gray-600 hover:text-violet-700 border border-gray-200"
+                : "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200 hover:shadow-lg hover:-translate-y-px"
+            }`}
+          >
+            {hasAttempt ? "Ponovi" : "Začni"}
+          </button>
+          {hasAttempt && (
+            <button
+              onClick={() => setShowResults(true)}
+              className="shrink-0 rounded-xl px-4 py-2 text-xs font-bold text-violet-600 hover:text-violet-700 hover:bg-violet-50 border border-violet-100 transition-all"
+            >
+              Rezultati
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Score bar if attempted */}
@@ -109,6 +121,14 @@ function QuizCard({
             />
           </div>
         </div>
+      )}
+
+      {showResults && (
+        <StudentQuizResults
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          onClose={() => setShowResults(false)}
+        />
       )}
     </div>
   );

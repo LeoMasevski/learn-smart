@@ -8,12 +8,12 @@ import SubjectDetailPage from "../components/student/SubjectDetailPage";
 
 import StudentQuizRunner from "../components/student/StudentQuizRunner";
 import type { StudentSubject, StudentLesson, LessonVariant, SubjectQuizForStudent } from "../types/student";
+import { getSubjectIcon } from "../utils/subjectIcons";
 
 type ViewType = "subjects" | "allSubjects" | "subjectDetail" | "lesson" | "quiz";
 type MainPageType = "predmeti" | "vsi-predmeti" | "profil";
 
 const SUBJECT_COLORS = ["#6d4cff", "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
-const SUBJECT_ICONS  = ["📘", "💻", "🧠", "🎨", "🔬", "📐"];
 
 export default function StudentDashboard() {
   const { profile, logout } = useAuth();
@@ -231,13 +231,17 @@ export default function StudentDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mySubjects.map((subject, i) => (
+          {mySubjects.map((subject, i) => {
+            const SubjectIcon = getSubjectIcon(subject.name, i);
+            return (
             <div key={subject.id} onClick={() => openSubject(subject)}
               className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
             >
               <div className="h-24 flex items-center justify-between px-5"
                 style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}>
-                <span className="text-3xl">{SUBJECT_ICONS[i % SUBJECT_ICONS.length]}</span>
+                <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
+                  <SubjectIcon className="w-6 h-6 text-white" strokeWidth={2.25} />
+                </div>
                 <span className="text-xs font-extrabold text-white/80 bg-white/20 px-2.5 py-1 rounded-full">AI ✨</span>
               </div>
               <div className="p-5">
@@ -248,7 +252,8 @@ export default function StudentDashboard() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -279,6 +284,7 @@ export default function StudentDashboard() {
             {allSubjects.map((subject, i) => {
               const enrolled  = isEnrolled(subject.id);
               const enrolling = enrollingId === subject.id;
+              const SubjectIcon = getSubjectIcon(subject.name, i);
 
               return (
                 <div key={subject.id}
@@ -289,9 +295,9 @@ export default function StudentDashboard() {
 
                   {/* Content */}
                   <div className="flex-1 p-5 flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                       style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] + "22" }}>
-                      {SUBJECT_ICONS[i % SUBJECT_ICONS.length]}
+                      <SubjectIcon className="w-6 h-6" style={{ color: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }} strokeWidth={2.25} />
                     </div>
 
                     <div className="flex-1 min-w-0">

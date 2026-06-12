@@ -12,7 +12,15 @@ export async function getQuizzesBySubjectId(subjectId: string) {
         lesson_id,
         lessons ( id, title )
       ),
-      quiz_questions ( id )
+      quiz_questions (
+        id,
+        question,
+        options,
+        correct_answer,
+        question_type,
+        explanation,
+        order_index
+      )
     `)
     .eq("subject_id", subjectId)
     .order("created_at", { ascending: false });

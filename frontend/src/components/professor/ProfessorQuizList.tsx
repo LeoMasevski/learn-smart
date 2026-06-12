@@ -108,7 +108,9 @@ function QuizCard({ quiz, onDelete, onViewResults }: { quiz: SubjectQuiz; onDele
         <div className="border-t border-slate-100 px-6 pb-5">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-3">Vprašanja</p>
           <div className="space-y-2">
-            {(quiz.quiz_questions ?? []).map((q, idx) => (
+            {[...(quiz.quiz_questions ?? [])]
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((q, idx) => (
               <div key={q.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
                 <div className="flex items-start gap-2">
                   <span className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">

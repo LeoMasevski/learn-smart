@@ -5,6 +5,7 @@ import {
   handleStartAttempt,
   handleSubmitAttempt,
   handleGetMyAttempt,
+  handleGetMyAttemptReview,
   handleGetQuizResults,
 } from "./quizAttempt.controller";
 
@@ -18,6 +19,9 @@ router.post("/:attemptId/submit", requireAuth, requireRole(["STUDENT"]), handleS
 
 // GET /quiz-attempts/quiz/:quizId/my  — student gets their last attempt
 router.get("/quiz/:quizId/my", requireAuth, requireRole(["STUDENT"]), handleGetMyAttempt);
+
+// GET /quiz-attempts/quiz/:quizId/review  — student gets their last completed attempt with per-question review
+router.get("/quiz/:quizId/review", requireAuth, requireRole(["STUDENT"]), handleGetMyAttemptReview);
 
 // GET /quiz-attempts/quiz/:quizId/results  — professor sees all student results
 router.get("/quiz/:quizId/results", requireAuth, requireRole(["PROFESSOR"]), handleGetQuizResults);

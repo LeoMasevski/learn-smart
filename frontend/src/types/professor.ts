@@ -15,6 +15,7 @@ export type Lesson = {
   created_by?: string;
   created_at?: string;
   updated_at?: string;
+  lesson_variants?: { learning_type: string }[];
 };
 
 export type LearningType = "VISUAL" | "AUDITORY" | "KINESTHETIC";
@@ -66,4 +67,15 @@ export type SubjectStudentsResponse = {
   total: number;
   students: StudentInSubject[];
   learningTypeCounts: LearningTypeCounts;
+};
+
+export type StudentProgress = {
+  id: string;
+  full_name: string;
+  learning_type: LearningType | null;
+  enrolled_at: string;
+  quizzes_total: number;
+  quizzes_attempted: number;
+  avg_score: number | null;
+  best_score: number | null;
 };

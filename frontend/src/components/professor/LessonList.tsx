@@ -5,6 +5,8 @@ type Props = {
   onEdit: (lesson: Lesson) => void;
   onDelete: (id: string) => void;
   onPreview: (lesson: Lesson) => void;
+  onGenerateVariants: (lesson: Lesson) => void;
+  generatingVariantsId?: string;
   activePreviewId?: string;
 };
 
@@ -21,7 +23,7 @@ const getLessonMeta = (title: string) => {
 const cleanTitle = (title: string) =>
   title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "");
 
-const LessonList = ({ lessons, onEdit, onDelete, onPreview, activePreviewId }: Props) => {
+const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, generatingVariantsId, activePreviewId }: Props) => {
   if (lessons.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -39,6 +41,8 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, activePreviewId }: P
       {lessons.map((lesson) => {
         const meta = getLessonMeta(lesson.title);
         const isActive = lesson.id === activePreviewId;
+        const hasVariants = (lesson.lesson_variants?.length ?? 0) > 0;
+        const isGenerating = generatingVariantsId === lesson.id;
 
         return (
           <div
@@ -60,6 +64,11 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, activePreviewId }: P
                     {isActive && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 border border-violet-200">
                         Aktiven predogled
+                      </span>
+                    )}
+                    {!hasVariants && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        ⚠️ Variante manjkajo
                       </span>
                     )}
                   </div>
@@ -88,6 +97,15 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, activePreviewId }: P
 
               {/* Actions */}
               <div className="flex items-center gap-2 shrink-0">
+                {!hasVariants && (
+                  <button
+                    onClick={() => onGenerateVariants(lesson)}
+                    disabled={isGenerating}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition disabled:opacity-60"
+                  >
+                    {isGenerating ? "Generiranje..." : "Generiraj variante"}
+                  </button>
+                )}
                 <button
                   onClick={() => onPreview(lesson)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition ${

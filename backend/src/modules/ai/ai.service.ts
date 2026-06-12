@@ -2,6 +2,21 @@ import { gemini } from "../../config/gemini";
 
 type LearningType = "VISUAL" | "AUDITORY" | "KINESTHETIC";
 
+// Gemini occasionally returns transient 503 "model overloaded" errors — retry a few times before giving up
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const message = err?.message ?? "";
+      const isRetryable = message.includes("503") || message.includes("UNAVAILABLE") || message.includes("overloaded");
+      if (!isRetryable || attempt === retries) throw err;
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 export type GeneratedQuestion = {
   question: string;
   options: string[] | null;
@@ -235,13 +250,15 @@ Original lesson content:
 ${originalContent}
 `;
 
-  const response = await gemini.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+  const response = await withRetry(() =>
+    gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    })
+  );
 
   const text = response.text;
 
