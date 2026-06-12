@@ -69,7 +69,14 @@ export async function submitAttempt(
       time_taken_seconds: timeTakenSeconds,
     })
     .eq("id", attemptId)
-    .select()
+    .select(`
+      *,
+      quiz_attempt_answers (
+        question_id,
+        selected_answer,
+        is_correct
+      )
+    `)
     .single();
 }
 
@@ -92,7 +99,7 @@ export async function getMyAttemptForQuiz(quizId: string, studentId: string) {
 }
 
 export async function getQuizResultsForProfessor(quizId: string) {
-  return await supabaseAdmin
+  const { data: attempts, error } = await supabaseAdmin
     .from("quiz_attempts")
     .select(`
       id,
@@ -103,13 +110,24 @@ export async function getQuizResultsForProfessor(quizId: string) {
       started_at,
       finished_at,
       status,
-      profiles!quiz_attempts_student_id_fkey (
-        id,
-        full_name,
-        learning_type
-      )
+      student_id
     `)
     .eq("quiz_id", quizId)
     .eq("status", "completed")
     .order("score", { ascending: false });
+
+  if (error || !attempts) return { data: attempts, error };
+
+  const studentIds = [...new Set(attempts.map((a) => a.student_id))];
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, learning_type")
+    .in("id", studentIds);
+
+  const profileMap: Record<string, { id: string; full_name: string; learning_type: string | null }> = {};
+  for (const p of profiles ?? []) profileMap[p.id] = p;
+
+  const data = attempts.map((a) => ({ ...a, profiles: profileMap[a.student_id] ?? null }));
+
+  return { data, error: null };
 }

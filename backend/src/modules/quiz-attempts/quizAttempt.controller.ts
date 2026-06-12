@@ -65,6 +65,21 @@ export async function handleGetMyAttempt(req: Request, res: Response) {
   res.json(data ?? null);
 }
 
+export async function handleGetMyAttemptReview(req: Request, res: Response) {
+  const user = (req as any).user;
+  const quizId = req.params.quizId as string;
+
+  const { data, error } = await getMyAttemptForQuiz(quizId, user.id);
+  if (error) return res.status(500).json({ message: "Failed to fetch attempt", error: error.message });
+  if (!data || data.status !== "completed") {
+    return res.status(404).json({ message: "No completed attempt found for this quiz" });
+  }
+
+  const { data: quiz } = await getQuizById(data.quiz_id);
+
+  res.json({ attempt: data, quiz });
+}
+
 export async function handleGetQuizResults(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
 

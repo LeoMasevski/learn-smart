@@ -9,14 +9,16 @@ import LessonFormModal from "../components/professor/LessonFormModal";
 import ProfessorLessonVariantPreview from "../components/professor/ProfessorLessonVariantPreview";
 import ProfessorStudentsView from "../components/professor/ProfessorStudentsView";
 import ProfessorQuizList from "../components/professor/ProfessorQuizList";
+import ProfessorSubjectStatistics from "../components/professor/ProfessorSubjectStatistics";
+import { getSubjectIcon } from "../utils/subjectIcons";
 
-const SUBJECT_COLORS = [
-  { bg: "bg-violet-100", icon: "💻" },
-  { bg: "bg-sky-100", icon: "🎨" },
-  { bg: "bg-emerald-100", icon: "📚" },
-  { bg: "bg-amber-100", icon: "🧠" },
-  { bg: "bg-rose-100", icon: "🔬" },
-  { bg: "bg-fuchsia-100", icon: "🎯" },
+const SUBJECT_STYLES = [
+  { bg: "bg-violet-100", text: "text-violet-600" },
+  { bg: "bg-sky-100", text: "text-sky-600" },
+  { bg: "bg-emerald-100", text: "text-emerald-600" },
+  { bg: "bg-amber-100", text: "text-amber-600" },
+  { bg: "bg-rose-100", text: "text-rose-600" },
+  { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
 ];
 
 const ProfessorDashboard = () => {
@@ -36,7 +38,8 @@ const ProfessorDashboard = () => {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
   const [previewLesson, setPreviewLesson] = useState<Lesson | null>(null);
-  const [subjectTab, setSubjectTab] = useState<"gradivo" | "studenti" | "kvizi">("gradivo");
+  const [generatingVariantsId, setGeneratingVariantsId] = useState<string | undefined>(undefined);
+  const [subjectTab, setSubjectTab] = useState<"gradivo" | "studenti" | "kvizi" | "statistika">("gradivo");
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
 
   const fetchSubjects = async () => {
@@ -122,6 +125,18 @@ const ProfessorDashboard = () => {
     await api.delete(`/lessons/${id}`);
     if (previewLesson?.id === id) setPreviewLesson(null);
     fetchLessons();
+  };
+
+  const generateVariants = async (lesson: Lesson) => {
+    setGeneratingVariantsId(lesson.id);
+    try {
+      await api.post(`/lessons/${lesson.id}/generate-variants`);
+      await fetchLessons();
+    } catch {
+      setLessonsError("Napaka pri generiranju variant. Poskusi znova.");
+    } finally {
+      setGeneratingVariantsId(undefined);
+    }
   };
 
   // ── Home view ────────────────────────────────────────────────────────────────
@@ -248,7 +263,8 @@ const ProfessorDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {subjects.map((subject, index) => {
-            const { bg, icon } = SUBJECT_COLORS[index % SUBJECT_COLORS.length];
+            const { bg, text } = SUBJECT_STYLES[index % SUBJECT_STYLES.length];
+            const SubjectIcon = getSubjectIcon(subject.name, index);
             const subjectLessonCount = lessons.filter((l) => l.subject_id === subject.id).length;
 
             return (
@@ -257,7 +273,9 @@ const ProfessorDashboard = () => {
                 className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-lg transition duration-300 flex flex-col"
               >
                 <div className={`h-28 ${bg} p-5 flex items-start justify-between`}>
-                  <span className="text-4xl">{icon}</span>
+                  <div className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center">
+                    <SubjectIcon className={`w-7 h-7 ${text}`} strokeWidth={2.25} />
+                  </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className="bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full text-slate-600 text-xs font-semibold">
                       Predmet
@@ -359,7 +377,7 @@ const ProfessorDashboard = () => {
 
         {/* Tab navigation */}
         <div className="mb-6 flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">
-          {(["gradivo", "kvizi", "studenti"] as const).map((tab) => (
+          {(["gradivo", "kvizi", "studenti", "statistika"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setSubjectTab(tab); setPreviewLesson(null); }}
@@ -369,7 +387,7 @@ const ProfessorDashboard = () => {
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              {tab === "gradivo" ? "📚 Učno gradivo" : tab === "kvizi" ? "🧠 Kvizi" : "👥 Študenti"}
+              {tab === "gradivo" ? "📚 Učno gradivo" : tab === "kvizi" ? "🧠 Kvizi" : tab === "studenti" ? "👥 Študenti" : "📊 Statistika"}
             </button>
           ))}
         </div>
@@ -418,6 +436,8 @@ const ProfessorDashboard = () => {
                   onEdit={openEditLesson}
                   onDelete={deleteLesson}
                   onPreview={setPreviewLesson}
+                  onGenerateVariants={generateVariants}
+                  generatingVariantsId={generatingVariantsId}
                   activePreviewId={previewLesson?.id}
                 />
               </div>
@@ -467,6 +487,16 @@ const ProfessorDashboard = () => {
               <p className="text-slate-500 text-sm">Pregled učnih tipov in analitika za predmet.</p>
             </div>
             <ProfessorStudentsView subjectId={selectedSubject.id} />
+          </>
+        )}
+
+        {subjectTab === "statistika" && (
+          <>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-slate-900">Uspeh študentov</h2>
+              <p className="text-slate-500 text-sm">Pregled napredka in uspešnosti reševanja kvizov za vsakega študenta.</p>
+            </div>
+            <ProfessorSubjectStatistics subjectId={selectedSubject.id} />
           </>
         )}
       </>
