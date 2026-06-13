@@ -26,6 +26,27 @@ export async function getQuizzesBySubjectId(subjectId: string) {
     .order("created_at", { ascending: false });
 }
 
+export async function getQuizzesBySubjectIdForStudent(subjectId: string) {
+  return await supabaseAdmin
+    .from("subject_quizzes")
+    .select(`
+      *,
+      quiz_lessons (
+        lesson_id,
+        lessons ( id, title )
+      ),
+      quiz_questions (
+        id,
+        question,
+        options,
+        question_type,
+        order_index
+      )
+    `)
+    .eq("subject_id", subjectId)
+    .order("created_at", { ascending: false });
+}
+
 // Full version for professor/post-submit (includes correct_answer + explanation)
 export async function getQuizById(quizId: string) {
   return await supabaseAdmin

@@ -88,6 +88,17 @@ export async function getUserSubjects(userId: string) {
     .order("enrolled_at", { ascending: false });
 }
 
+export async function isUserEnrolledInSubject(userId: string, subjectId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("user_subjects")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("subject_id", subjectId)
+    .maybeSingle();
+
+  return { isEnrolled: Boolean(data && !error), error };
+}
+
 export async function enrollUserInSubject(userId: string, subjectId: string) {
   return await supabaseAdmin
     .from("user_subjects")

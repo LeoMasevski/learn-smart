@@ -6,6 +6,7 @@ import {
   updateSubject,
   deleteSubject,
 } from "./subject.service";
+import { cleanString, isUuid } from "../../utils/validation";
 
 export async function handleGetAllSubjects(_req: Request, res: Response) {
   const { data, error } = await getAllSubjects();
@@ -13,7 +14,6 @@ export async function handleGetAllSubjects(_req: Request, res: Response) {
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch subjects",
-      error: error.message,
     });
   }
 
@@ -23,12 +23,15 @@ export async function handleGetAllSubjects(_req: Request, res: Response) {
 export async function handleGetSubjectById(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const { data, error } = await getSubjectById(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Subject not found",
-      error: error?.message,
     });
   }
 
@@ -36,7 +39,8 @@ export async function handleGetSubjectById(req: Request, res: Response) {
 }
 
 export async function handleCreateSubject(req: Request, res: Response) {
-  const { name, description } = req.body;
+  const name = cleanString(req.body.name, 150);
+  const description = cleanString(req.body.description, 1000);
 
   if (!name) {
     return res.status(400).json({
@@ -49,7 +53,6 @@ export async function handleCreateSubject(req: Request, res: Response) {
   if (error) {
     return res.status(500).json({
       message: "Failed to create subject",
-      error: error.message,
     });
   }
 
@@ -58,7 +61,16 @@ export async function handleCreateSubject(req: Request, res: Response) {
 
 export async function handleUpdateSubject(req: Request, res: Response) {
   const id = req.params.id as string;
-  const { name, description } = req.body;
+  const name =
+    req.body.name === undefined ? undefined : cleanString(req.body.name, 150);
+  const description =
+    req.body.description === undefined
+      ? undefined
+      : cleanString(req.body.description, 1000);
+
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
 
   if (name === undefined && description === undefined) {
     return res.status(400).json({
@@ -71,7 +83,6 @@ export async function handleUpdateSubject(req: Request, res: Response) {
   if (error || !data) {
     return res.status(404).json({
       message: "Subject not found",
-      error: error?.message,
     });
   }
 
@@ -81,12 +92,15 @@ export async function handleUpdateSubject(req: Request, res: Response) {
 export async function handleDeleteSubject(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const { data, error } = await deleteSubject(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Subject not found",
-      error: error?.message,
     });
   }
 

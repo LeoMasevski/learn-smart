@@ -116,6 +116,8 @@ export default function AuthPage() {
               <input
                 type="email"
                 required
+                maxLength={254}
+                autoComplete="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="ime@email.com"
@@ -128,6 +130,9 @@ export default function AuthPage() {
               <input
                 type="password"
                 required
+                minLength={8}
+                maxLength={128}
+                autoComplete="current-password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="••••••••"
@@ -173,6 +178,8 @@ export default function AuthPage() {
               <input
                 type="text"
                 required
+                maxLength={100}
+                autoComplete="name"
                 value={regName}
                 onChange={(e) => setRegName(e.target.value)}
                 placeholder="Ana Novak"
@@ -185,6 +192,8 @@ export default function AuthPage() {
               <input
                 type="email"
                 required
+                maxLength={254}
+                autoComplete="email"
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
                 placeholder="ime@email.com"
@@ -197,6 +206,9 @@ export default function AuthPage() {
               <input
                 type="password"
                 required
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
                 value={regPassword}
                 onChange={(e) => setRegPassword(e.target.value)}
                 placeholder="najmanj 8 znakov"

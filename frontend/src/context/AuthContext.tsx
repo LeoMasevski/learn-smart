@@ -1,6 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  api,
+  clearStoredToken,
+  getApiErrorMessage,
+  getStoredToken,
+  setStoredToken,
+} from "../api/api";
 
 export type UserRole = "STUDENT" | "PROFESSOR";
 
@@ -33,6 +38,7 @@ interface RegisterPayload {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
+  refreshProfile: () => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -43,27 +49,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     profile: null,
-    token: localStorage.getItem("ls_token"),
+    token: getStoredToken(),
     isLoading: true,
   });
 
-  // Ob zagonu preveri token in naloži profil
   useEffect(() => {
-    const token = localStorage.getItem("ls_token");
+    const token = getStoredToken();
     if (!token) {
       setState((s) => ({ ...s, isLoading: false }));
       return;
     }
+
     fetchMe(token);
+
+    const handleAuthExpired = () => {
+      setState({ user: null, profile: null, token: null, isLoading: false });
+    };
+
+    window.addEventListener("learnsmart:auth-expired", handleAuthExpired);
+    return () => window.removeEventListener("learnsmart:auth-expired", handleAuthExpired);
   }, []);
 
   async function fetchMe(token: string) {
     try {
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Invalid token");
-      const data = await res.json();
+      const { data } = await api.get("/auth/me");
       setState({
         user: data.user,
         profile: data.profile,
@@ -71,51 +80,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
     } catch {
-      localStorage.removeItem("ls_token");
+      clearStoredToken();
       setState({ user: null, profile: null, token: null, isLoading: false });
     }
   }
 
+  async function refreshProfile() {
+    const token = getStoredToken();
+    if (!token) {
+      setState({ user: null, profile: null, token: null, isLoading: false });
+      return;
+    }
+
+    await fetchMe(token);
+  }
+
   async function login(email: string, password: string) {
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const { data } = await api.post("/auth/login", {
+        email: email.trim().toLowerCase(),
+        password,
       });
-      const data = await res.json();
-      if (!res.ok) return { error: data.error || data.message || "Napaka pri prijavi" };
 
       const token = data.session?.access_token;
       if (!token) return { error: "Ni veljavnega tokena" };
 
-      localStorage.setItem("ls_token", token);
+      setStoredToken(token);
       await fetchMe(token);
       return {};
-    } catch {
-      return { error: "Strežnik ni dosegljiv" };
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Streznik ni dosegljiv") };
     }
   }
 
   async function register({ email, password, fullName, role }: RegisterPayload) {
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName, role }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { error: data.error || data.message || "Napaka pri registraciji" };
+      const normalizedEmail = email.trim().toLowerCase();
 
-      // Po registraciji avtomatska prijava
-      return await login(email, password);
-    } catch {
-      return { error: "Strežnik ni dosegljiv" };
+      await api.post("/auth/register", {
+        email: normalizedEmail,
+        password,
+        fullName: fullName.trim(),
+        role,
+      });
+
+      return await login(normalizedEmail, password);
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Streznik ni dosegljiv") };
     }
   }
 
   function logout() {
-    localStorage.removeItem("ls_token");
+    clearStoredToken();
     setState({ user: null, profile: null, token: null, isLoading: false });
   }
 
@@ -125,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         login,
         register,
+        refreshProfile,
         logout,
         isAuthenticated: !!state.user,
       }}
@@ -136,6 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth mora biti znotraj AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
