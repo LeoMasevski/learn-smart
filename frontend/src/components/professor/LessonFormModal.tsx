@@ -21,6 +21,7 @@ type SuccessInfo = {
 };
 
 const MAX_PDF_MB = 10;
+const PDF_MAGIC = "%PDF-";
 
 const VARIANT_META = {
   VISUAL: { emoji: "👁️", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
@@ -61,10 +62,13 @@ const LessonFormModal = ({
   const [error, setError] = useState("");
   const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
 
-  const validateAndSetFile = (file: File | undefined) => {
+  const validateAndSetFile = async (file: File | undefined) => {
     setPdfError("");
     if (!file) return;
-    if (file.type !== "application/pdf") {
+    const hasPdfMime = file.type === "application/pdf";
+    const hasPdfExtension = file.name.toLowerCase().endsWith(".pdf");
+
+    if (!hasPdfMime || !hasPdfExtension) {
       setPdfError("Datoteka mora biti v formatu PDF.");
       return;
     }
@@ -72,6 +76,13 @@ const LessonFormModal = ({
       setPdfError(`PDF ne sme presegati ${MAX_PDF_MB} MB.`);
       return;
     }
+
+    const header = await file.slice(0, PDF_MAGIC.length).text();
+    if (header !== PDF_MAGIC) {
+      setPdfError("Datoteka ni veljaven PDF.");
+      return;
+    }
+
     setPdfFile(file);
   };
 
@@ -91,7 +102,7 @@ const LessonFormModal = ({
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    validateAndSetFile(e.dataTransfer.files?.[0]);
+    void validateAndSetFile(e.dataTransfer.files?.[0]);
   };
 
   const removePdf = () => {
@@ -384,7 +395,7 @@ const LessonFormModal = ({
                       type="file"
                       accept="application/pdf"
                       className="hidden"
-                      onChange={(e) => validateAndSetFile(e.target.files?.[0])}
+                      onChange={(e) => void validateAndSetFile(e.target.files?.[0])}
                       disabled={saving}
                     />
                   </div>

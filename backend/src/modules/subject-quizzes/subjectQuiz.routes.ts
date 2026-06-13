@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.middleware";
 import { requireRole } from "../../middleware/role.middleware";
+import { rateLimit } from "../../middleware/security.middleware";
 import {
   handleGetQuizzesBySubject,
   handleGetQuizById,
@@ -10,6 +11,11 @@ import {
 } from "./subjectQuiz.controller";
 
 const router = Router();
+const aiGenerationRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  keyPrefix: "quiz-ai",
+});
 
 // GET /quizzes/subject/:subjectId  — professor & student
 router.get(
@@ -38,6 +44,7 @@ router.post(
   "/:quizId/generate",
   requireAuth,
   requireRole(["PROFESSOR"]),
+  aiGenerationRateLimit,
   handleGenerateQuizQuestions
 );
 

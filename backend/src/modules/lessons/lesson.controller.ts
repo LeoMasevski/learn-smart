@@ -15,6 +15,10 @@ import {
   getLessonVariantsByLessonId,
   getLessonVariantByLearningType,
 } from "../lesson-variants/lessonVariant.service";
+import { assertPdfBuffer } from "../../middleware/upload.middleware";
+import { cleanString, isUuid } from "../../utils/validation";
+
+const maxLessonContentLength = 80_000;
 
 export async function handleGetAllLessons(_req: Request, res: Response) {
   const { data, error } = await getAllLessons();
@@ -22,7 +26,6 @@ export async function handleGetAllLessons(_req: Request, res: Response) {
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lessons",
-      error: error.message,
     });
   }
 
@@ -32,12 +35,15 @@ export async function handleGetAllLessons(_req: Request, res: Response) {
 export async function handleGetLessonById(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await getLessonById(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
   }
 
@@ -47,12 +53,15 @@ export async function handleGetLessonById(req: Request, res: Response) {
 export async function handleGetLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
 
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await getLessonVariantsByLessonId(lessonId);
 
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lesson variants",
-      error: error.message,
     });
   }
 
@@ -62,12 +71,15 @@ export async function handleGetLessonVariants(req: Request, res: Response) {
 export async function handleGenerateLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
 
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data: lesson, error: lessonError } = await getLessonById(lessonId);
 
   if (lessonError || !lesson) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: lessonError?.message,
     });
   }
 
@@ -91,15 +103,19 @@ export async function handleGenerateLessonVariants(req: Request, res: Response) 
       variantsGenerated: variants.length,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       message: "Failed to generate lesson variants",
-      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
 
 export async function handleCreateLesson(req: Request, res: Response) {
-  const { subjectId, title, originalContent, aiInstructions } = req.body;
+  const subjectId = cleanString(req.body.subjectId, 64);
+  const title = cleanString(req.body.title, 200);
+  const originalContent =
+    typeof req.body.originalContent === "string" ? req.body.originalContent : "";
+  const aiInstructions = req.body.aiInstructions;
   const user = (req as any).user;
   const file = req.file;
 
@@ -109,21 +125,30 @@ export async function handleCreateLesson(req: Request, res: Response) {
     });
   }
 
+  if (!isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
 
-  let finalContent = originalContent;
+  let finalContent = originalContent.trim();
 
   try {
     if (file) {
+      assertPdfBuffer(file.buffer);
       const extracted = await extractTextFromPdf(file.buffer);
-      finalContent = extracted.text;
+      finalContent = extracted.text.trim();
     }
 
     if (!finalContent || finalContent.trim().length < 20) {
       return res.status(400).json({
         message: "Lesson content or a readable PDF file is required",
       });
+    }
+
+    if (finalContent.length > maxLessonContentLength) {
+      finalContent = finalContent.slice(0, maxLessonContentLength);
     }
 
     const { data: lesson, error: lessonError } = await createLesson(
@@ -137,7 +162,6 @@ export async function handleCreateLesson(req: Request, res: Response) {
     if (lessonError || !lesson) {
       return res.status(500).json({
         message: "Failed to create lesson",
-        error: lessonError?.message,
       });
     }
 
@@ -161,7 +185,8 @@ export async function handleCreateLesson(req: Request, res: Response) {
 
       variantsGenerated = variants.length;
     } catch (error) {
-      aiError = error instanceof Error ? error.message : "Unknown AI error";
+      console.error(error);
+      aiError = "AI generation failed";
     }
 
     return res.status(201).json({
@@ -184,16 +209,30 @@ export async function handleCreateLesson(req: Request, res: Response) {
         : undefined,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       message: "Failed to process lesson",
-      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
 
 export async function handleUpdateLesson(req: Request, res: Response) {
   const id = req.params.id as string;
-  const { subjectId, title, originalContent, aiInstructions } = req.body;
+  const subjectId =
+    req.body.subjectId === undefined
+      ? undefined
+      : cleanString(req.body.subjectId, 64);
+  const title =
+    req.body.title === undefined ? undefined : cleanString(req.body.title, 200);
+  const originalContent =
+    req.body.originalContent === undefined
+      ? undefined
+      : String(req.body.originalContent).trim().slice(0, maxLessonContentLength);
+  const aiInstructions = req.body.aiInstructions;
+
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
 
   if (
     subjectId === undefined &&
@@ -204,6 +243,10 @@ export async function handleUpdateLesson(req: Request, res: Response) {
     return res.status(400).json({
       message: "At least one field is required",
     });
+  }
+
+  if (subjectId !== undefined && !isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
   }
 
   const safeAiInstructions =
@@ -220,7 +263,6 @@ export async function handleUpdateLesson(req: Request, res: Response) {
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
   }
 
@@ -230,12 +272,15 @@ export async function handleUpdateLesson(req: Request, res: Response) {
 export async function handleDeleteLesson(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await deleteLesson(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
   }
 
@@ -248,12 +293,15 @@ export async function handleDeleteLesson(req: Request, res: Response) {
 export async function handleGetLessonsBySubject(req: Request, res: Response) {
   const subjectId = req.params.subjectId as string;
 
+  if (!isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const { data, error } = await getLessonsBySubjectId(subjectId);
 
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lessons for subject",
-      error: error.message,
     });
   }
 
@@ -266,6 +314,10 @@ export async function handleGetLessonVariantByLearningType(
 ) {
   const lessonId = req.params.id as string;
   const learningType = (req.params.learningType as string).toUpperCase();
+
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
 
   const validTypes = ["VISUAL", "AUDITORY", "KINESTHETIC"];
 
@@ -283,7 +335,6 @@ export async function handleGetLessonVariantByLearningType(
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson variant not found",
-      error: error?.message,
     });
   }
 

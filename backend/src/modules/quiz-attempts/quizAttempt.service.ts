@@ -33,19 +33,39 @@ export async function submitAttempt(
   if (aeErr || !attempt) return { data: null, error: aeErr ?? new Error("Attempt not found") };
   if (attempt.status === "completed") return { data: null, error: new Error("Already completed") };
 
+  const uniqueAnswers = Array.from(
+    new Map(
+      answers
+        .filter(
+          (answer) =>
+            typeof answer.question_id === "string" &&
+            typeof answer.selected_answer === "string"
+        )
+        .map((answer) => [answer.question_id, answer])
+    ).values()
+  );
+
+  if (uniqueAnswers.length === 0) {
+    return { data: null, error: new Error("No valid answers submitted") };
+  }
+
   // Fetch correct answers for questions in this attempt
-  const questionIds = answers.map((a) => a.question_id);
+  const questionIds = uniqueAnswers.map((a) => a.question_id);
   const { data: questions, error: qErr } = await supabaseAdmin
     .from("quiz_questions")
     .select("id, correct_answer")
+    .eq("quiz_id", attempt.quiz_id)
     .in("id", questionIds);
 
   if (qErr || !questions) return { data: null, error: qErr ?? new Error("Questions not found") };
+  if (questions.length !== questionIds.length) {
+    return { data: null, error: new Error("Invalid question submitted") };
+  }
 
   const correctMap: Record<string, string> = {};
   for (const q of questions) correctMap[q.id] = q.correct_answer;
 
-  const answerRows = answers.map((a) => ({
+  const answerRows = uniqueAnswers.map((a) => ({
     attempt_id: attemptId,
     question_id: a.question_id,
     selected_answer: a.selected_answer,
