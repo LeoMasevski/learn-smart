@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { api } from "../../api/api";
+import { api, getApiErrorMessage } from "../../api/api";
 import type { Lesson, Subject } from "../../types/professor";
 
 type Props = {
@@ -17,7 +17,15 @@ type SuccessInfo = {
   lessonTitle: string;
   variantsGenerated: number;
   aiError: string | null;
-  pdf?: { originalName: string; size: number; extractedTextLength: number };
+  imageUploadError?: string | null;
+  pdf?: {
+    originalName: string;
+    size: number;
+    extractedTextLength: number;
+    extractedImageCount?: number;
+    uploadedImageCount?: number;
+    imageExtractionError?: string | null;
+  };
 };
 
 const MAX_PDF_MB = 10;
@@ -156,6 +164,7 @@ const LessonFormModal = ({
 
       const res = await api.post("/lessons", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 180_000,
       });
 
       setSuccessInfo({
@@ -163,13 +172,19 @@ const LessonFormModal = ({
         lessonTitle: prefixedTitle,
         variantsGenerated: res.data.variantsGenerated,
         aiError: res.data.aiError,
+        imageUploadError: res.data.imageUploadError,
         pdf: res.data.pdf,
       });
     } catch (err: any) {
+      if (err?.code === "ECONNABORTED") {
+        setError(
+          "Shranjevanje traja predolgo. PDF z AI generiranjem lahko traja do nekaj minut, poskusi znova ali uporabi manjši PDF."
+        );
+        return;
+      }
+
       setError(
-        err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          "Napaka pri shranjevanju gradiva."
+        getApiErrorMessage(err, "Napaka pri shranjevanju gradiva.")
       );
     } finally {
       setSaving(false);
@@ -195,10 +210,27 @@ const LessonFormModal = ({
               <span className="text-xl">📄</span>
               <div className="text-left">
                 <p className="font-semibold text-slate-800">{successInfo.pdf.originalName}</p>
+                {successInfo.pdf.uploadedImageCount !== undefined && (
+                  <p className="text-xs text-slate-400">
+                    {successInfo.pdf.uploadedImageCount} slik shranjenih
+                  </p>
+                )}
+                {successInfo.pdf.imageExtractionError && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Slik ni bilo mogoce v celoti izlusčiti iz PDF-ja.
+                  </p>
+                )}
                 <p className="text-xs text-slate-400">
                   {(successInfo.pdf.size / 1024).toFixed(0)} KB · {successInfo.pdf.extractedTextLength} znakov
                 </p>
               </div>
+            </div>
+          )}
+
+          {successInfo.imageUploadError && (
+            <div className="mb-4 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-left">
+              <p className="font-semibold text-amber-700 mb-1">Slike niso bile shranjene</p>
+              <p className="text-amber-600 text-sm">{successInfo.imageUploadError}</p>
             </div>
           )}
 

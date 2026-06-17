@@ -77,6 +77,9 @@ type ImageBlockData = {
   title?: string;
   url: string;
   alt?: string;
+  sourceImageId?: string;
+  storagePath?: string;
+  pageNumber?: number;
 };
 
 export type LessonBlock =

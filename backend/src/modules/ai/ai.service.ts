@@ -2,6 +2,19 @@ import { gemini } from "../../config/gemini";
 
 type LearningType = "VISUAL" | "AUDITORY" | "KINESTHETIC";
 
+export type LessonImageForGeneration = {
+  id: string;
+  url: string;
+  storagePath: string;
+  pageNumber: number;
+  imageIndex: number;
+  title: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  contextText: string;
+};
+
 // Gemini occasionally returns transient 503 "model overloaded" errors — retry a few times before giving up
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -109,7 +122,8 @@ ${combinedContent}
 export async function generateLessonVariantsFromText(
   title: string,
   originalContent: string,
-  aiInstructions?: string
+  aiInstructions?: string,
+  lessonImages: LessonImageForGeneration[] = []
 ): Promise<
   {
     learningType: LearningType;
@@ -118,6 +132,24 @@ export async function generateLessonVariantsFromText(
 > {
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
+  const imagePrompt =
+    lessonImages.length > 0
+      ? JSON.stringify(
+          lessonImages.map((image) => ({
+            id: image.id,
+            url: image.url,
+            pageNumber: image.pageNumber,
+            imageIndex: image.imageIndex,
+            title: image.title,
+            alt: image.alt,
+            width: image.width,
+            height: image.height,
+            pageContext: image.contextText.slice(0, 700),
+          })),
+          null,
+          2
+        )
+      : "[]";
 
   const prompt = `
 You are generating structured lesson content for LearnSmart in Slovenian.
@@ -237,8 +269,22 @@ Image:
   "type": "image",
   "title": "Image title",
   "url": "https://example.com/image.png",
-  "alt": "Image description"
+  "alt": "Image description",
+  "sourceImageId": "pdf-image-1",
+  "pageNumber": 1
 }
+
+PDF images available for this lesson:
+${imagePrompt}
+
+Image rules:
+- Use only image URLs from "PDF images available for this lesson".
+- Do not invent image URLs.
+- Each image belongs only to this lesson.
+- Place images near the section they support, using pageNumber and pageContext to decide where they fit.
+- The VISUAL variant should include all useful PDF images in page order.
+- The AUDITORY and KINESTHETIC variants may include images when they directly support the explanation or activity.
+- If no PDF images are available, do not create image blocks.
 
 Professor additional instructions:
 ${safeAiInstructions || "No additional professor instructions provided."}
@@ -272,5 +318,83 @@ ${originalContent}
     throw new Error("Gemini response does not contain valid variants array");
   }
 
-  return parsed.variants;
+  return sanitizeGeneratedLessonImages(parsed.variants, lessonImages);
+}
+
+function sanitizeGeneratedLessonImages(
+  variants: { learningType: LearningType; blocks: unknown[] }[],
+  lessonImages: LessonImageForGeneration[]
+) {
+  if (lessonImages.length === 0) {
+    return variants.map((variant) => ({
+      ...variant,
+      blocks: Array.isArray(variant.blocks)
+        ? variant.blocks.filter((block: any) => block?.type !== "image")
+        : [],
+    }));
+  }
+
+  const imagesByUrl = new Map(lessonImages.map((image) => [image.url, image]));
+  const usedVisualImageUrls = new Set<string>();
+
+  const sanitizedVariants = variants.map((variant) => {
+    const blocks = Array.isArray(variant.blocks) ? variant.blocks : [];
+    const sanitizedBlocks = blocks.flatMap((block: any) => {
+      if (block?.type !== "image") {
+        return [block];
+      }
+
+      const image = imagesByUrl.get(String(block.url || ""));
+      if (!image) {
+        return [];
+      }
+
+      if (variant.learningType === "VISUAL") {
+        usedVisualImageUrls.add(image.url);
+      }
+
+      return [
+        {
+          type: "image",
+          title: block.title || image.title,
+          url: image.url,
+          alt: block.alt || image.alt,
+          sourceImageId: image.id,
+          storagePath: image.storagePath,
+          pageNumber: image.pageNumber,
+        },
+      ];
+    });
+
+    return {
+      ...variant,
+      blocks: sanitizedBlocks,
+    };
+  });
+
+  const visualVariant = sanitizedVariants.find(
+    (variant) => variant.learningType === "VISUAL"
+  );
+
+  if (visualVariant) {
+    const missingVisualImages = lessonImages.filter(
+      (image) => !usedVisualImageUrls.has(image.url)
+    );
+
+    if (missingVisualImages.length > 0) {
+      visualVariant.blocks.push(
+        ...missingVisualImages.map((image) => ({
+          type: "image",
+          title: image.title,
+          url: image.url,
+          alt: image.alt,
+          sourceImageId: image.id,
+          storagePath: image.storagePath,
+          pageNumber: image.pageNumber,
+        }))
+      );
+    }
+  }
+
+  return sanitizedVariants;
 }

@@ -8,13 +8,18 @@ import {
   getLessonsBySubjectId,
 } from "./lesson.service";
 
-import { extractTextFromPdf } from "../../utils/pdf";
+import { extractContentFromPdf, type ExtractedPdfImage } from "../../utils/pdf";
 import { generateLessonVariantsFromText } from "../ai/ai.service";
 import {
   createLessonVariant,
   getLessonVariantsByLessonId,
   getLessonVariantByLearningType,
 } from "../lesson-variants/lessonVariant.service";
+import {
+  deleteLessonImages,
+  listLessonImages,
+  uploadLessonImages,
+} from "../lesson-images/lessonImage.service";
 import { assertPdfBuffer } from "../../middleware/upload.middleware";
 import { cleanString, isUuid } from "../../utils/validation";
 
@@ -84,10 +89,12 @@ export async function handleGenerateLessonVariants(req: Request, res: Response) 
   }
 
   try {
+    const lessonImages = await listLessonImages(lesson.id);
     const variants = await generateLessonVariantsFromText(
       lesson.title,
       lesson.original_content,
-      lesson.ai_instructions || ""
+      lesson.ai_instructions || "",
+      lessonImages
     );
 
     for (const variant of variants) {
@@ -101,6 +108,7 @@ export async function handleGenerateLessonVariants(req: Request, res: Response) 
     return res.json({
       message: "Lesson variants generated successfully",
       variantsGenerated: variants.length,
+      lessonImagesUsed: lessonImages.length,
     });
   } catch (error) {
     console.error(error);
@@ -133,12 +141,19 @@ export async function handleCreateLesson(req: Request, res: Response) {
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
 
   let finalContent = originalContent.trim();
+  let pdfImageCount = 0;
+  let uploadedPdfImageCount = 0;
+  let imageExtractionError: string | null = null;
+  let extractedPdfImages: ExtractedPdfImage[] = [];
 
   try {
     if (file) {
       assertPdfBuffer(file.buffer);
-      const extracted = await extractTextFromPdf(file.buffer);
+      const extracted = await extractContentFromPdf(file.buffer);
       finalContent = extracted.text.trim();
+      extractedPdfImages = extracted.images;
+      pdfImageCount = extracted.images.length;
+      imageExtractionError = extracted.imageExtractionError || null;
     }
 
     if (!finalContent || finalContent.trim().length < 20) {
@@ -167,12 +182,25 @@ export async function handleCreateLesson(req: Request, res: Response) {
 
     let variantsGenerated = 0;
     let aiError: string | null = null;
+    let imageUploadError: string | null = null;
+    let lessonImages: Awaited<ReturnType<typeof uploadLessonImages>> = [];
+
+    try {
+      if (extractedPdfImages.length > 0) {
+        lessonImages = await uploadLessonImages(lesson.id, extractedPdfImages);
+        uploadedPdfImageCount = lessonImages.length;
+      }
+    } catch (error) {
+      console.error(error);
+      imageUploadError = "PDF image upload failed";
+    }
 
     try {
       const variants = await generateLessonVariantsFromText(
         title,
         finalContent,
-        safeAiInstructions
+        safeAiInstructions,
+        lessonImages
       );
 
       for (const variant of variants) {
@@ -189,22 +217,30 @@ export async function handleCreateLesson(req: Request, res: Response) {
       aiError = "AI generation failed";
     }
 
+    const message = aiError
+      ? file
+        ? "Lesson created from PDF, but AI generation failed"
+        : "Lesson created, but AI generation failed"
+      : imageUploadError
+      ? "Lesson created from PDF and variants generated, but PDF image upload failed"
+      : file
+      ? "Lesson created from PDF with images and variants generated successfully"
+      : "Lesson created and variants generated successfully";
+
     return res.status(201).json({
-      message: aiError
-        ? file
-          ? "Lesson created from PDF, but AI generation failed"
-          : "Lesson created, but AI generation failed"
-        : file
-          ? "Lesson created from PDF and variants generated successfully"
-          : "Lesson created and variants generated successfully",
+      message,
       lesson,
       variantsGenerated,
       aiError,
+      imageUploadError,
       pdf: file
         ? {
             originalName: file.originalname,
             size: file.size,
             extractedTextLength: finalContent.length,
+            extractedImageCount: pdfImageCount,
+            uploadedImageCount: uploadedPdfImageCount,
+            imageExtractionError,
           }
         : undefined,
     });
@@ -282,6 +318,12 @@ export async function handleDeleteLesson(req: Request, res: Response) {
     return res.status(404).json({
       message: "Lesson not found",
     });
+  }
+
+  try {
+    await deleteLessonImages(id);
+  } catch (error) {
+    console.error("Failed to delete lesson images:", error);
   }
 
   res.json({
