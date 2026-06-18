@@ -5,18 +5,26 @@ import { api } from "../api/api.tsx";
 import { useAuth } from "../context/AuthContext";
 import LessonRenderer from "../components/lesson/LessonRenderer";
 import SubjectDetailPage from "../components/student/SubjectDetailPage";
+import StudentProgress from "./StudentProgress.tsx";
 
 import StudentQuizRunner from "../components/student/StudentQuizRunner";
 import type { StudentSubject, StudentLesson, LessonVariant, SubjectQuizForStudent } from "../types/student";
 import { getSubjectIcon } from "../utils/subjectIcons";
 
 type ViewType = "subjects" | "allSubjects" | "subjectDetail" | "lesson" | "quiz";
-type MainPageType = "predmeti" | "vsi-predmeti" | "profil";
+type MainPageType = "predmeti" | "vsi-predmeti" | "napredek" | "profil";
+type LearningTypeKey = "VISUAL" | "AUDITORY" | "KINESTHETIC";
 
 const SUBJECT_COLORS = ["#6d4cff", "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
+function getLearningTypeUI(lt: LearningTypeKey) {
+  if (lt === "VISUAL")   return { label: "Vizualni učenec",     icon: "👁️", desc: "Vsebina z diagrami, tabelami in barvnimi poudarki.", color: "#6c63ff", bg: "#f5f3ff", border: "#ddd6fe" };
+  if (lt === "AUDITORY") return { label: "Slušni učenec",       icon: "🎧", desc: "Narativne razlage in analogije brez slik.",           color: "#0ea5e9", bg: "#e0f2fe", border: "#bae6fd" };
+  return                        { label: "Kinestetični učenec", icon: "🤸", desc: "Praktični primeri in primerjave iz življenja.",        color: "#10b981", bg: "#dcfce7", border: "#bbf7d0" };
+}
+
 export default function StudentDashboard() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, refreshProfile } = useAuth();
 
   const [mySubjects, setMySubjects]       = useState<StudentSubject[]>([]);
   const [allSubjects, setAllSubjects]     = useState<StudentSubject[]>([]);
@@ -38,9 +46,12 @@ export default function StudentDashboard() {
   const [loadingVariant, setLoadingVariant] = useState(false);
   const [error, setError]         = useState("");
 
-  useEffect(() => { fetchMySubjects(); }, []);
+  const [changingLT, setChangingLT] = useState(false);
+  const [ltLoading,  setLtLoading]  = useState(false);
+  const [ltError,    setLtError]    = useState("");
+  const [ltSuccess,  setLtSuccess]  = useState("");
 
-  // Api
+  useEffect(() => { fetchMySubjects(); }, []);
 
   async function fetchMySubjects() {
     try {
@@ -72,7 +83,6 @@ export default function StudentDashboard() {
     try {
       setEnrollingId(subjectId);
       await api.post(`/user-subjects/${subjectId}/enroll`);
-      // refresh my subjects
       await fetchMySubjects();
     } catch (e: any) {
       setError(e?.response?.data?.message || "Napaka pri vpisu v predmet.");
@@ -134,8 +144,6 @@ export default function StudentDashboard() {
     if (next >= 0 && next < lessons.length) await openLesson(lessons[next]);
   }
 
-  // Nav
-
   function goHome() {
     setView("subjects"); setMainPage("predmeti");
     setSelectedSubject(null); setSelectedLesson(null);
@@ -157,15 +165,25 @@ export default function StudentDashboard() {
 
   function learningLabel() {
     if (!profile?.learning_type) return "Ni določen";
-    return { VISUAL: "Vizualni", AUDITORY: "Slušni", KINESTHETIC: "Kinestetični" }[profile.learning_type];
+    return getLearningTypeUI(profile.learning_type).label;
+  }
+
+  async function updateLearningType(lt: LearningTypeKey) {
+    try {
+      setLtLoading(true); setLtError(""); setLtSuccess("");
+      await api.patch("/users/learning-type", { learningType: lt.toLowerCase() });
+      await refreshProfile();
+      setLtSuccess("Učni tip uspešno posodobljen.");
+      setChangingLT(false);
+    } catch (e: any) {
+      setLtError(e?.response?.data?.message || "Napaka pri posodobitvi učnega tipa.");
+    } finally { setLtLoading(false); }
   }
 
   const isEnrolled = (id: string) => mySubjects.some(s => s.id === id);
   const lessonIdx  = selectedLesson ? lessons.findIndex(l => l.id === selectedLesson.id) : -1;
   const hasPrev    = lessonIdx > 0;
   const hasNext    = lessonIdx < lessons.length - 1;
-
-  // Topbar
 
   const Topbar = () => (
     <div className="flex justify-end items-center h-14 mb-2 relative">
@@ -187,8 +205,6 @@ export default function StudentDashboard() {
       )}
     </div>
   );
-
-  // Moji predmeti
 
   const MySubjectsView = () => {
     if (loadingMy) return <p className="text-sm text-gray-400 mt-4">Nalagam predmete...</p>;
@@ -259,7 +275,6 @@ export default function StudentDashboard() {
     );
   };
 
-  // Vsi predmeti
 
   const AllSubjectsView = () => {
     if (loadingAll) return (
@@ -359,20 +374,101 @@ export default function StudentDashboard() {
   };
 
   const ProfileView = () => (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="max-w-4xl mx-auto w-full flex flex-col gap-5">
+      {/* Osnovni podatki */}
       <div className="bg-white rounded-2xl border border-gray-100 p-8">
-        <h2 className="font-extrabold text-gray-900 text-lg mb-1">Profil</h2>
-        <p className="text-gray-400 text-sm mb-6">Osnovni podatki študenta.</p>
-        <div className="flex items-center gap-5">
+        <h2 className="font-extrabold text-gray-900 text-lg mb-1">Moj profil</h2>
+        <p className="text-gray-400 text-sm mb-6">Osebni podatki in nastavitve.</p>
+        <div className="flex items-center gap-5 flex-wrap">
           <div className="w-16 h-16 rounded-full bg-violet-600 text-white text-xl font-extrabold flex items-center justify-center shrink-0">
             {getInitials()}
           </div>
           <div>
             <h3 className="text-lg font-extrabold text-gray-900">{profile?.full_name}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Učni tip: <strong className="text-gray-700">{learningLabel()}</strong></p>
+            <p className="text-sm text-gray-500 mt-0.5">Vloga: <strong className="text-gray-700">Študent</strong></p>
             <p className="text-sm text-gray-500">Vpisani predmeti: <strong className="text-gray-700">{mySubjects.length}</strong></p>
           </div>
         </div>
+      </div>
+
+      {/* Učni tip */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-8">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+          <div>
+            <h2 className="font-extrabold text-gray-900 text-lg mb-1">Učni tip</h2>
+            <p className="text-gray-400 text-sm">Določa kako se prikažejo lekcije.</p>
+          </div>
+          {!changingLT && (
+            <button onClick={() => { setChangingLT(true); setLtError(""); setLtSuccess(""); }}
+              className="text-sm font-bold text-violet-600 bg-violet-50 border border-violet-200 px-4 py-2 rounded-xl hover:bg-violet-100 transition-colors"
+            >
+              ✏️ Spremeni
+            </button>
+          )}
+        </div>
+
+        {ltSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm font-semibold rounded-xl px-4 py-3 mb-4">✅ {ltSuccess}</div>}
+        {ltError   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl px-4 py-3 mb-4">⚠️ {ltError}</div>}
+
+        {!changingLT && profile?.learning_type && (() => {
+          const info = getLearningTypeUI(profile.learning_type!);
+          return (
+            <div className="flex items-center gap-4 p-5 rounded-2xl border" style={{ background: info.bg, borderColor: info.border }}>
+              <span className="text-4xl">{info.icon}</span>
+              <div>
+                <strong style={{ color: info.color }} className="text-base">{info.label}</strong>
+                <p className="text-gray-500 text-sm mt-1">{info.desc}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {!changingLT && !profile?.learning_type && (
+          <div className="text-center py-6 text-gray-400">
+            <span className="text-4xl block mb-2">❓</span>
+            <p className="text-sm">Učni tip še ni določen. Reši vprašalnik ob registraciji ali ga nastavi spodaj.</p>
+          </div>
+        )}
+
+        {changingLT && (
+          <div>
+            <p className="text-sm font-bold text-gray-700 mb-3">Izberi nov učni tip:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(["VISUAL", "AUDITORY", "KINESTHETIC"] as LearningTypeKey[]).map(key => {
+                const info    = getLearningTypeUI(key);
+                const current = profile?.learning_type === key;
+                return (
+                  <button key={key} onClick={() => updateLearningType(key)} disabled={ltLoading}
+                    className={`flex flex-col items-center gap-2 p-5 rounded-2xl border-2 text-center transition-all ${
+                      current ? "scale-[1.02] shadow-md" : "hover:-translate-y-0.5 hover:shadow-md"
+                    } ${ltLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                    style={{ borderColor: current ? info.color : "#e5e7eb", background: current ? info.bg : "white" }}
+                  >
+                    <span className="text-3xl">{info.icon}</span>
+                    <strong style={{ color: info.color }} className="text-sm">{info.label}</strong>
+                    <small className="text-gray-400 text-xs leading-relaxed">{info.desc}</small>
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={() => setChangingLT(false)}
+              className="mt-4 text-sm font-bold text-gray-500 bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              Prekliči
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Hiter pregled + povezava na napredek */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-8">
+        <h2 className="font-extrabold text-gray-900 text-lg mb-4">Hiter pregled</h2>
+        <p className="text-gray-400 text-sm">
+          Za podroben pregled rezultatov kvizov in napredka po predmetih pojdi na{" "}
+          <button onClick={() => setMainPage("napredek")} className="text-violet-600 font-bold hover:underline">
+            Moj napredek →
+          </button>
+        </p>
       </div>
     </div>
   );
@@ -473,6 +569,10 @@ export default function StudentDashboard() {
               🌐 Vsi predmeti
             </SidebarBtn>
             <div className="h-px bg-gray-100 my-1" />
+            <SidebarBtn active={mainPage === "napredek"} onClick={() => { setView("subjects"); setMainPage("napredek"); }}>
+              📊 Moj napredek
+            </SidebarBtn>
+            <div className="h-px bg-gray-100 my-1" />
             <SidebarBtn active={mainPage === "profil"} onClick={() => { setView("subjects"); setMainPage("profil"); }}>
               👤 Profil
             </SidebarBtn>
@@ -513,6 +613,7 @@ export default function StudentDashboard() {
         )}
 
         {view === "subjects"      && mainPage === "profil"       && <ProfileView />}
+        {view === "subjects"      && mainPage === "napredek"     && <StudentProgress />}
         {view === "subjects"      && mainPage === "predmeti"     && <MySubjectsView />}
         {view === "allSubjects"                                   && <AllSubjectsView />}
         {view === "subjectDetail" && selectedSubject             && (

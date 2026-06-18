@@ -40,6 +40,7 @@ interface AuthContextType extends AuthState {
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
   refreshProfile: () => Promise<void>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -86,12 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshProfile() {
-    const token = getStoredToken();
-    if (!token) {
-      setState({ user: null, profile: null, token: null, isLoading: false });
-      return;
-    }
-
+    const token = localStorage.getItem("ls_token");
+    if (!token) return;
     await fetchMe(token);
   }
 
@@ -123,10 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: fullName.trim(),
         role,
       });
-
-      return await login(normalizedEmail, password);
-    } catch (error) {
-      return { error: getApiErrorMessage(error, "Streznik ni dosegljiv") };
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || data.message || "Napaka pri registraciji" };
+      return await login(email, password);
+    } catch {
+      return { error: "Strežnik ni dosegljiv" };
     }
   }
 
@@ -143,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         refreshProfile,
         logout,
+        refreshProfile,
         isAuthenticated: !!state.user,
       }}
     >

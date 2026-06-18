@@ -51,3 +51,15 @@ Testiranje delovanja
 5.6
 Posodabljanje student dashboard da vidimo vse predmete
 vpis v predmete da deluje
+
+6.6
+posodabljanje da se lahko spremeni učni tip učenca
+posodobljen profil učenca
+
+7.6
+dodajanje mock podatkov
+loading error/empty stanja
+
+8.6 
+"Moj napredek" page dodan 
+uporabljeni mock podatki dokler ni backenda
