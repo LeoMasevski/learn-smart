@@ -40,7 +40,6 @@ interface AuthContextType extends AuthState {
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
   refreshProfile: () => Promise<void>;
   logout: () => void;
-  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -120,11 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: fullName.trim(),
         role,
       });
-      const data = await res.json();
-      if (!res.ok) return { error: data.error || data.message || "Napaka pri registraciji" };
       return await login(email, password);
-    } catch {
-      return { error: "Strežnik ni dosegljiv" };
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Napaka pri registraciji") };
     }
   }
 
@@ -141,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         refreshProfile,
         logout,
-        refreshProfile,
         isAuthenticated: !!state.user,
       }}
     >
