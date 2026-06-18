@@ -23,6 +23,10 @@ const getLessonMeta = (title: string) => {
 const cleanTitle = (title: string) =>
   title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "");
 
+const isGeneratingVariant = (variant: NonNullable<Lesson["lesson_variants"]>[number]) =>
+  Array.isArray(variant.content_blocks) &&
+  variant.content_blocks.some((block) => (block as any)?.type === "generation_status");
+
 const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, generatingVariantsId, activePreviewId }: Props) => {
   if (lessons.length === 0) {
     return (
@@ -41,7 +45,12 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
       {lessons.map((lesson) => {
         const meta = getLessonMeta(lesson.title);
         const isActive = lesson.id === activePreviewId;
-        const hasVariants = (lesson.lesson_variants?.length ?? 0) > 0;
+        const variantCount = lesson.lesson_variants?.filter(
+          (variant) => !isGeneratingVariant(variant)
+        ).length ?? 0;
+        const placeholderCount = lesson.lesson_variants?.filter(isGeneratingVariant).length ?? 0;
+        const hasAllVariants = variantCount >= 3;
+        const isQueuedOrGenerating = placeholderCount > 0 && !hasAllVariants;
         const isGenerating = generatingVariantsId === lesson.id;
 
         return (
@@ -66,9 +75,13 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
                         Aktiven predogled
                       </span>
                     )}
-                    {!hasVariants && (
+                    {!hasAllVariants && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        ⚠️ Variante manjkajo
+                        {isQueuedOrGenerating
+                          ? "Variante se generirajo"
+                          : variantCount > 0
+                          ? `${variantCount}/3 variante pripravljene`
+                          : "Variante manjkajo"}
                       </span>
                     )}
                   </div>
@@ -97,7 +110,7 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
 
               {/* Actions */}
               <div className="flex items-center gap-2 shrink-0">
-                {!hasVariants && (
+                {!hasAllVariants && (
                   <button
                     onClick={() => onGenerateVariants(lesson)}
                     disabled={isGenerating}

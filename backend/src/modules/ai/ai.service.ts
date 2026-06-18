@@ -132,24 +132,7 @@ export async function generateLessonVariantsFromText(
 > {
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
-  const imagePrompt =
-    lessonImages.length > 0
-      ? JSON.stringify(
-          lessonImages.map((image) => ({
-            id: image.id,
-            url: image.url,
-            pageNumber: image.pageNumber,
-            imageIndex: image.imageIndex,
-            title: image.title,
-            alt: image.alt,
-            width: image.width,
-            height: image.height,
-            pageContext: image.contextText.slice(0, 700),
-          })),
-          null,
-          2
-        )
-      : "[]";
+  const imagePrompt = buildLessonImagePrompt(lessonImages);
 
   const prompt = `
 You are generating structured lesson content for LearnSmart in Slovenian.
@@ -164,6 +147,20 @@ Generate exactly 3 lesson variants:
 1. VISUAL
 2. AUDITORY
 3. KINESTHETIC
+
+Learning type requirements:
+- VISUAL: explain with clear structure, visual grouping, tables/charts/images when useful.
+- AUDITORY: explain in conversational language, with memorable wording and short recap-style sections.
+- KINESTHETIC: teach by doing. Do not create mostly random standalone quizzes. Build the lesson as repeated cycles:
+  1. brief explanation of one concept,
+  2. concrete worked example or real-life scenario,
+  3. practice steps the learner can follow,
+  4. a quiz that directly checks that same example/scenario.
+- KINESTHETIC must include at least 3 example blocks and at least 3 quiz blocks when the source content is long enough.
+- Every KINESTHETIC quiz title and questions must refer to the immediately preceding example/practice section.
+- KINESTHETIC quizzes must test application of the explained example, not unrelated facts from elsewhere in the lesson.
+- KINESTHETIC should prefer example, steps, quiz, and text blocks. Use key_points only as a short recap after practice.
+- Keep every quiz short: 1-2 questions, 3-4 options each, with exactly one correctAnswer.
 
 Allowed block types:
 heading, text, key_points, table, example, steps, quiz, chart, code, image
@@ -241,6 +238,35 @@ Quiz:
     }
   ]
 }
+
+Kinesthetic sequence example:
+[
+  {
+    "type": "text",
+    "content": "Briefly explain one concept."
+  },
+  {
+    "type": "example",
+    "title": "Worked example: specific situation",
+    "content": "Show how the concept works in a concrete case."
+  },
+  {
+    "type": "steps",
+    "title": "Try it yourself",
+    "items": ["Step 1 based on the example", "Step 2 based on the example"]
+  },
+  {
+    "type": "quiz",
+    "title": "Check the worked example",
+    "questions": [
+      {
+        "question": "Question that directly checks the example above",
+        "options": ["A", "B", "C", "D"],
+        "correctAnswer": "A"
+      }
+    ]
+  }
+]
 
 Chart:
 {
@@ -321,6 +347,288 @@ ${originalContent}
   return sanitizeGeneratedLessonImages(parsed.variants, lessonImages);
 }
 
+export async function generateLessonVariantFromText(
+  title: string,
+  originalContent: string,
+  learningType: LearningType,
+  aiInstructions?: string,
+  lessonImages: LessonImageForGeneration[] = []
+): Promise<{
+  learningType: LearningType;
+  blocks: unknown[];
+}> {
+  const safeAiInstructions =
+    typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
+  const imagePrompt = buildLessonImagePrompt(lessonImages);
+  const learningTypeInstruction =
+    learningType === "VISUAL"
+      ? "Explain with clear structure, visual grouping, tables/charts/images when useful."
+      : learningType === "AUDITORY"
+      ? "Explain in conversational language, with memorable wording and short recap-style sections."
+      : `Teach by doing. Build repeated cycles: brief explanation, concrete worked example or real-life scenario, practice steps, then a quiz that directly checks that same example/scenario. Include at least 3 example blocks and 3 quiz blocks when the source content is long enough. Do not create random standalone quizzes.`;
+
+  const prompt = `
+You are generating one structured lesson variant for LearnSmart in Slovenian.
+
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include explanations outside JSON.
+Do not generate HTML or React code.
+
+Generate exactly one lesson variant:
+${learningType}
+
+Required JSON shape:
+{
+  "variant": {
+    "learningType": "${learningType}",
+    "blocks": []
+  }
+}
+
+Learning type requirement:
+${learningTypeInstruction}
+
+Allowed block types:
+heading, text, key_points, table, example, steps, quiz, chart, code, image
+
+Important block rules:
+- All visible text must be in Slovenian.
+- Quizzes must be short: 1-2 questions, 3-4 options each, exactly one correctAnswer.
+- For KINESTHETIC, every quiz must directly refer to the immediately preceding example or practice steps.
+- Do not invent facts that are not supported by the lesson content.
+
+Block examples:
+{"type":"heading","content":"Section title"}
+{"type":"text","content":"Explanation text"}
+{"type":"key_points","title":"Important points","items":["point 1","point 2"]}
+{"type":"example","title":"Worked example","content":"Concrete example explanation"}
+{"type":"steps","title":"Try it yourself","items":["step 1","step 2"]}
+{"type":"quiz","title":"Check the example","questions":[{"question":"Question text","options":["A","B","C","D"],"correctAnswer":"A"}]}
+{"type":"image","title":"Image title","url":"https://example.com/image.png","alt":"Image description","sourceImageId":"pdf-image-1","pageNumber":1}
+
+PDF images available for this lesson:
+${imagePrompt}
+
+Image rules:
+- Use only image URLs from "PDF images available for this lesson".
+- Do not invent image URLs.
+- Place images near the section they support.
+- If no PDF images are available, do not create image blocks.
+
+Professor additional instructions:
+${safeAiInstructions || "No additional professor instructions provided."}
+
+Lesson title:
+${title}
+
+Original lesson content:
+${originalContent}
+`;
+
+  const response = await withRetry(() =>
+    gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    })
+  );
+
+  const text = response.text;
+
+  if (!text) {
+    throw new Error("Gemini returned empty response");
+  }
+
+  const parsed = JSON.parse(text);
+  const variant = parsed.variant || parsed.variants?.[0];
+
+  if (!variant || !Array.isArray(variant.blocks)) {
+    throw new Error("Gemini response does not contain a valid lesson variant");
+  }
+
+  const sanitized = sanitizeGeneratedLessonImages(
+    [
+      {
+        learningType,
+        blocks: variant.blocks,
+      },
+    ],
+    lessonImages
+  );
+
+  return sanitized[0];
+}
+
+export async function generateLessonVariantBlockBatch(
+  title: string,
+  originalContent: string,
+  learningType: LearningType,
+  batchIndex: number,
+  totalBatches: number,
+  existingBlocks: unknown[],
+  aiInstructions?: string,
+  lessonImages: LessonImageForGeneration[] = []
+): Promise<unknown[]> {
+  const safeAiInstructions =
+    typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
+  const imagePrompt = buildLessonImagePrompt(lessonImages);
+  const existingBlocksSummary = JSON.stringify(existingBlocks).slice(0, 5000);
+  const sectionInstruction = getBatchInstruction(
+    learningType,
+    batchIndex,
+    totalBatches
+  );
+
+  const prompt = `
+You are generating one incremental section batch for a LearnSmart lesson variant in Slovenian.
+
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include explanations outside JSON.
+Do not generate HTML or React code.
+
+Learning type:
+${learningType}
+
+Batch:
+${batchIndex} of ${totalBatches}
+
+Goal for this batch:
+${sectionInstruction}
+
+Required JSON shape:
+{
+  "blocks": []
+}
+
+Allowed block types:
+heading, text, key_points, table, example, steps, quiz, chart, code, image
+
+Rules:
+- Generate only the next coherent section(s), not the whole lesson.
+- Do not repeat blocks already generated.
+- Return 2-5 blocks for this batch.
+- All visible text must be in Slovenian.
+- Quizzes must be short: 1-2 questions, 3-4 options each, exactly one correctAnswer.
+- For KINESTHETIC, every quiz must directly check the example or practice steps in this same batch.
+- Do not invent facts that are not supported by the lesson content.
+
+PDF images available for this lesson:
+${imagePrompt}
+
+Image rules:
+- Use only image URLs from "PDF images available for this lesson".
+- Do not invent image URLs.
+- Use images only when they directly support this batch.
+- If no relevant PDF image is available for this batch, do not create image blocks.
+
+Professor additional instructions:
+${safeAiInstructions || "No additional professor instructions provided."}
+
+Lesson title:
+${title}
+
+Existing generated blocks:
+${existingBlocksSummary || "[]"}
+
+Original lesson content:
+${originalContent}
+`;
+
+  const response = await withRetry(() =>
+    gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    })
+  );
+
+  const text = response.text;
+
+  if (!text) {
+    throw new Error("Gemini returned empty response");
+  }
+
+  const parsed = JSON.parse(text);
+
+  if (!parsed.blocks || !Array.isArray(parsed.blocks)) {
+    throw new Error("Gemini response does not contain valid blocks");
+  }
+
+  const sanitized = sanitizeGeneratedLessonImages(
+    [
+      {
+        learningType,
+        blocks: parsed.blocks,
+      },
+    ],
+    lessonImages
+  );
+
+  return sanitized[0].blocks;
+}
+
+function getBatchInstruction(
+  learningType: LearningType,
+  batchIndex: number,
+  totalBatches: number
+) {
+  if (learningType === "KINESTHETIC") {
+    if (batchIndex === totalBatches) {
+      return "Finish with applied practice, a final example-based quiz, and a short recap.";
+    }
+
+    return "Create one learn-by-doing cycle: brief explanation, concrete worked example, practice steps, and a quiz that checks that exact example.";
+  }
+
+  if (learningType === "VISUAL") {
+    if (batchIndex === 1) {
+      return "Introduce the topic with a clear visual structure and the most important concepts.";
+    }
+
+    if (batchIndex === totalBatches) {
+      return "Finish with a structured recap, comparison, chart/table, or final visual summary.";
+    }
+
+    return "Expand the lesson with organized visual sections, examples, tables, charts, or relevant images.";
+  }
+
+  if (batchIndex === 1) {
+    return "Introduce the topic in conversational language with a clear mental model.";
+  }
+
+  if (batchIndex === totalBatches) {
+    return "Finish with a concise spoken-style recap and a short self-check quiz.";
+  }
+
+  return "Expand the lesson with memorable explanations, spoken-style examples, and short recap points.";
+}
+
+function buildLessonImagePrompt(lessonImages: LessonImageForGeneration[]) {
+  return lessonImages.length > 0
+    ? JSON.stringify(
+        lessonImages.map((image) => ({
+          id: image.id,
+          url: image.url,
+          pageNumber: image.pageNumber,
+          imageIndex: image.imageIndex,
+          title: image.title,
+          alt: image.alt,
+          width: image.width,
+          height: image.height,
+          pageContext: image.contextText.slice(0, 700),
+        })),
+        null,
+        2
+      )
+    : "[]";
+}
+
 function sanitizeGeneratedLessonImages(
   variants: { learningType: LearningType; blocks: unknown[] }[],
   lessonImages: LessonImageForGeneration[]
@@ -368,7 +676,10 @@ function sanitizeGeneratedLessonImages(
 
     return {
       ...variant,
-      blocks: sanitizedBlocks,
+      blocks:
+        variant.learningType === "KINESTHETIC"
+          ? enforceKinestheticPracticeFlow(sanitizedBlocks)
+          : sanitizedBlocks,
     };
   });
 
@@ -397,4 +708,27 @@ function sanitizeGeneratedLessonImages(
   }
 
   return sanitizedVariants;
+}
+
+function enforceKinestheticPracticeFlow(blocks: unknown[]) {
+  const sanitizedBlocks: unknown[] = [];
+
+  for (const block of blocks) {
+    const blockType = (block as any)?.type;
+    const previousBlockType =
+      (sanitizedBlocks[sanitizedBlocks.length - 1] as any)?.type;
+
+    if (blockType === "quiz") {
+      const hasPracticeContext =
+        previousBlockType === "example" || previousBlockType === "steps";
+
+      if (!hasPracticeContext) {
+        continue;
+      }
+    }
+
+    sanitizedBlocks.push(block);
+  }
+
+  return sanitizedBlocks;
 }

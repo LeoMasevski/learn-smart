@@ -16,6 +16,7 @@ type SuccessInfo = {
   lessonId: string;
   lessonTitle: string;
   variantsGenerated: number;
+  generationQueued?: boolean;
   aiError: string | null;
   imageUploadError?: string | null;
   pdf?: {
@@ -170,7 +171,8 @@ const LessonFormModal = ({
       setSuccessInfo({
         lessonId: res.data.lesson.id,
         lessonTitle: prefixedTitle,
-        variantsGenerated: res.data.variantsGenerated,
+        variantsGenerated: res.data.variantsGenerated ?? 0,
+        generationQueued: res.data.generationQueued,
         aiError: res.data.aiError,
         imageUploadError: res.data.imageUploadError,
         pdf: res.data.pdf,
@@ -202,8 +204,12 @@ const LessonFormModal = ({
             </svg>
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Gradivo ustvarjeno!</h2>
-          <p className="text-slate-500 text-sm mb-4">AI je uspešno generiral učne variante.</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Gradivo shranjeno!</h2>
+          <p className="text-slate-500 text-sm mb-4">
+            {successInfo.generationQueued
+              ? "AI variante se generirajo v ozadju. Lahko nadaljuješ z delom."
+              : "AI je uspešno generiral učne variante."}
+          </p>
 
           {successInfo.pdf && (
             <div className="mb-4 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-600 flex items-center gap-3">
@@ -234,7 +240,17 @@ const LessonFormModal = ({
             </div>
           )}
 
-          {successInfo.aiError ? (
+          {successInfo.generationQueued ? (
+            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 px-4 py-5">
+              <p className="text-violet-700 font-bold text-lg mb-2">
+                Generiranje poteka v ozadju
+              </p>
+              <p className="text-sm text-violet-600">
+                Vizualna, slušna in kinestetična varianta se shranijo takoj,
+                ko so pripravljene.
+              </p>
+            </div>
+          ) : successInfo.aiError ? (
             <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-4 text-left">
               <p className="font-semibold text-amber-700 mb-1">AI generiranje ni uspelo</p>
               <p className="text-amber-600 text-sm">{successInfo.aiError}</p>
