@@ -8,6 +8,10 @@ export async function getAllLessons() {
       subjects (
         id,
         name
+      ),
+      lesson_variants (
+        learning_type,
+        content_blocks
       )
     `)
     .order("created_at", { ascending: false });

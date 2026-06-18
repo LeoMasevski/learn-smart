@@ -8,13 +8,94 @@ import {
   getLessonsBySubjectId,
 } from "./lesson.service";
 
-import { extractTextFromPdf } from "../../utils/pdf";
+import { extractContentFromPdf, extractTextFromPdf } from "../../utils/pdf";
 import { generateLessonVariantsFromText } from "../ai/ai.service";
 import {
   createLessonVariant,
   getLessonVariantsByLessonId,
   getLessonVariantByLearningType,
 } from "../lesson-variants/lessonVariant.service";
+import {
+  deleteLessonImages,
+  listLessonImages,
+  uploadLessonImages,
+} from "../lesson-images/lessonImage.service";
+import { assertPdfBuffer } from "../../middleware/upload.middleware";
+import { cleanString, isUuid } from "../../utils/validation";
+
+const maxLessonContentLength = 80_000;
+const learningTypes = ["VISUAL", "AUDITORY", "KINESTHETIC"] as const;
+
+function queueLessonVariantGeneration(args: {
+  lessonId: string;
+  title: string;
+  originalContent: string;
+  aiInstructions: string;
+  pdfBuffer?: Buffer;
+}) {
+  setImmediate(() => {
+    void generateLessonVariantsInBackground(args);
+  });
+}
+
+async function generateLessonVariantsInBackground({
+  lessonId,
+  title,
+  originalContent,
+  aiInstructions,
+  pdfBuffer,
+}: {
+  lessonId: string;
+  title: string;
+  originalContent: string;
+  aiInstructions: string;
+  pdfBuffer?: Buffer;
+}) {
+  try {
+    await Promise.all(
+      learningTypes.map((learningType) =>
+        createLessonVariant(lessonId, learningType, [
+          createGenerationStatusBlock(),
+        ])
+      )
+    );
+
+    let lessonImages = await listLessonImages(lessonId);
+
+    if (pdfBuffer && lessonImages.length === 0) {
+      try {
+        const extracted = await extractContentFromPdf(pdfBuffer);
+        if (extracted.images.length > 0) {
+          lessonImages = await uploadLessonImages(lessonId, extracted.images);
+        }
+      } catch (error) {
+        console.error("Background PDF image processing failed:", error);
+      }
+    }
+
+    const variants = await generateLessonVariantsFromText(
+      title,
+      originalContent,
+      aiInstructions,
+      lessonImages
+    );
+
+    await Promise.all(
+      variants.map((variant) =>
+        createLessonVariant(lessonId, variant.learningType, variant.blocks)
+      )
+    );
+  } catch (error) {
+    console.error(`Background lesson generation failed for ${lessonId}:`, error);
+  }
+}
+
+function createGenerationStatusBlock() {
+  return {
+    type: "generation_status",
+    status: "generating",
+  };
+}
 
 export async function handleGetAllLessons(_req: Request, res: Response) {
   const { data, error } = await getAllLessons();
@@ -22,7 +103,6 @@ export async function handleGetAllLessons(_req: Request, res: Response) {
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lessons",
-      error: error.message,
     });
   }
 
@@ -32,12 +112,15 @@ export async function handleGetAllLessons(_req: Request, res: Response) {
 export async function handleGetLessonById(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await getLessonById(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
   }
 
@@ -47,12 +130,15 @@ export async function handleGetLessonById(req: Request, res: Response) {
 export async function handleGetLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
 
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await getLessonVariantsByLessonId(lessonId);
 
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lesson variants",
-      error: error.message,
     });
   }
 
@@ -62,44 +148,37 @@ export async function handleGetLessonVariants(req: Request, res: Response) {
 export async function handleGenerateLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
 
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data: lesson, error: lessonError } = await getLessonById(lessonId);
 
   if (lessonError || !lesson) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: lessonError?.message,
     });
   }
 
-  try {
-    const variants = await generateLessonVariantsFromText(
-      lesson.title,
-      lesson.original_content,
-      lesson.ai_instructions || ""
-    );
+  queueLessonVariantGeneration({
+    lessonId: lesson.id,
+    title: lesson.title,
+    originalContent: lesson.original_content,
+    aiInstructions: lesson.ai_instructions || "",
+  });
 
-    for (const variant of variants) {
-      await createLessonVariant(
-        lesson.id,
-        variant.learningType,
-        variant.blocks
-      );
-    }
-
-    return res.json({
-      message: "Lesson variants generated successfully",
-      variantsGenerated: variants.length,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Failed to generate lesson variants",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
+  return res.status(202).json({
+    message: "Lesson variant generation started",
+    generationQueued: true,
+  });
 }
 
 export async function handleCreateLesson(req: Request, res: Response) {
-  const { subjectId, title, originalContent, aiInstructions } = req.body;
+  const subjectId = cleanString(req.body.subjectId, 64);
+  const title = cleanString(req.body.title, 200);
+  const originalContent =
+    typeof req.body.originalContent === "string" ? req.body.originalContent : "";
+  const aiInstructions = req.body.aiInstructions;
   const user = (req as any).user;
   const file = req.file;
 
@@ -109,21 +188,32 @@ export async function handleCreateLesson(req: Request, res: Response) {
     });
   }
 
+  if (!isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
 
-  let finalContent = originalContent;
+  let finalContent = originalContent.trim();
+  let pdfBufferForGeneration: Buffer | undefined;
 
   try {
     if (file) {
+      assertPdfBuffer(file.buffer);
+      pdfBufferForGeneration = Buffer.from(file.buffer);
       const extracted = await extractTextFromPdf(file.buffer);
-      finalContent = extracted.text;
+      finalContent = extracted.text.trim();
     }
 
     if (!finalContent || finalContent.trim().length < 20) {
       return res.status(400).json({
         message: "Lesson content or a readable PDF file is required",
       });
+    }
+
+    if (finalContent.length > maxLessonContentLength) {
+      finalContent = finalContent.slice(0, maxLessonContentLength);
     }
 
     const { data: lesson, error: lessonError } = await createLesson(
@@ -137,44 +227,26 @@ export async function handleCreateLesson(req: Request, res: Response) {
     if (lessonError || !lesson) {
       return res.status(500).json({
         message: "Failed to create lesson",
-        error: lessonError?.message,
       });
     }
 
-    let variantsGenerated = 0;
-    let aiError: string | null = null;
-
-    try {
-      const variants = await generateLessonVariantsFromText(
-        title,
-        finalContent,
-        safeAiInstructions
-      );
-
-      for (const variant of variants) {
-        await createLessonVariant(
-          lesson.id,
-          variant.learningType,
-          variant.blocks
-        );
-      }
-
-      variantsGenerated = variants.length;
-    } catch (error) {
-      aiError = error instanceof Error ? error.message : "Unknown AI error";
-    }
+    queueLessonVariantGeneration({
+      lessonId: lesson.id,
+      title,
+      originalContent: finalContent,
+      aiInstructions: safeAiInstructions,
+      pdfBuffer: pdfBufferForGeneration,
+    });
 
     return res.status(201).json({
-      message: aiError
-        ? file
-          ? "Lesson created from PDF, but AI generation failed"
-          : "Lesson created, but AI generation failed"
-        : file
-          ? "Lesson created from PDF and variants generated successfully"
-          : "Lesson created and variants generated successfully",
+      message: file
+        ? "Lesson created from PDF. AI variants are generating in the background"
+        : "Lesson created. AI variants are generating in the background",
       lesson,
-      variantsGenerated,
-      aiError,
+      variantsGenerated: 0,
+      generationQueued: true,
+      aiError: null,
+      imageUploadError: null,
       pdf: file
         ? {
             originalName: file.originalname,
@@ -184,16 +256,30 @@ export async function handleCreateLesson(req: Request, res: Response) {
         : undefined,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       message: "Failed to process lesson",
-      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
 
 export async function handleUpdateLesson(req: Request, res: Response) {
   const id = req.params.id as string;
-  const { subjectId, title, originalContent, aiInstructions } = req.body;
+  const subjectId =
+    req.body.subjectId === undefined
+      ? undefined
+      : cleanString(req.body.subjectId, 64);
+  const title =
+    req.body.title === undefined ? undefined : cleanString(req.body.title, 200);
+  const originalContent =
+    req.body.originalContent === undefined
+      ? undefined
+      : String(req.body.originalContent).trim().slice(0, maxLessonContentLength);
+  const aiInstructions = req.body.aiInstructions;
+
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
 
   if (
     subjectId === undefined &&
@@ -204,6 +290,10 @@ export async function handleUpdateLesson(req: Request, res: Response) {
     return res.status(400).json({
       message: "At least one field is required",
     });
+  }
+
+  if (subjectId !== undefined && !isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
   }
 
   const safeAiInstructions =
@@ -220,7 +310,6 @@ export async function handleUpdateLesson(req: Request, res: Response) {
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
   }
 
@@ -230,13 +319,22 @@ export async function handleUpdateLesson(req: Request, res: Response) {
 export async function handleDeleteLesson(req: Request, res: Response) {
   const id = req.params.id as string;
 
+  if (!isUuid(id)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
   const { data, error } = await deleteLesson(id);
 
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson not found",
-      error: error?.message,
     });
+  }
+
+  try {
+    await deleteLessonImages(id);
+  } catch (error) {
+    console.error("Failed to delete lesson images:", error);
   }
 
   res.json({
@@ -248,12 +346,15 @@ export async function handleDeleteLesson(req: Request, res: Response) {
 export async function handleGetLessonsBySubject(req: Request, res: Response) {
   const subjectId = req.params.subjectId as string;
 
+  if (!isUuid(subjectId)) {
+    return res.status(400).json({ message: "Invalid subject id" });
+  }
+
   const { data, error } = await getLessonsBySubjectId(subjectId);
 
   if (error) {
     return res.status(500).json({
       message: "Failed to fetch lessons for subject",
-      error: error.message,
     });
   }
 
@@ -266,6 +367,10 @@ export async function handleGetLessonVariantByLearningType(
 ) {
   const lessonId = req.params.id as string;
   const learningType = (req.params.learningType as string).toUpperCase();
+
+  if (!isUuid(lessonId)) {
+    return res.status(400).json({ message: "Invalid lesson id" });
+  }
 
   const validTypes = ["VISUAL", "AUDITORY", "KINESTHETIC"];
 
@@ -283,7 +388,6 @@ export async function handleGetLessonVariantByLearningType(
   if (error || !data) {
     return res.status(404).json({
       message: "Lesson variant not found",
-      error: error?.message,
     });
   }
 

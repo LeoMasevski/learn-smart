@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { api, getApiErrorMessage } from "./api/api";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LearningTypeQuiz } from "./components/quiz/LearningTypeQuiz";
 import { LearningType } from "./data/quizQuestions";
@@ -13,67 +14,47 @@ function AppRouter() {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f7f8fc" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🎓</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>LS</div>
           <p style={{ color: "#6b7280", fontSize: 14 }}>Nalagam...</p>
         </div>
       </div>
     );
   }
 
-  // Ni prijavljen - prikaži auth stran (prijava/registracija)
   if (!isAuthenticated) {
     return <AuthPage />;
   }
 
-  // Prijavljen kot STUDENT brez learning_type - kviz
   if (profile?.role === "STUDENT" && !profile?.learning_type) {
     return <QuizWrapper />;
   }
 
-  // Prijavljen kot PROFESSOR - profesor dashboard
   if (profile?.role === "PROFESSOR") {
     return <ProfessorDashboard />;
   }
 
-  // Prijavljen kot STUDENT z learning_type - student dashboard
   return <StudentDashboard />;
 }
 
 function QuizWrapper() {
-  const { token } = useAuth();
+  const { refreshProfile } = useAuth();
   const [savedType, setSavedType] = useState<LearningType | null>(null);
+  const [error, setError] = useState("");
 
   const typeLabels: Record<LearningType, string> = {
-    visual: "👁️ Vizualni učni tip",
-    auditory: "🎧 Slušni učni tip",
-    kinesthetic: "🤲 Kinestetični učni tip",
+    visual: "Vizualni ucni tip",
+    auditory: "Slusni ucni tip",
+    kinesthetic: "Kinesteticni ucni tip",
   };
 
   async function handleQuizComplete(learningType: LearningType) {
     try {
-      const res = await fetch(`http://localhost:5000/api/users/learning-type`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ learningType }),
-      });
-
-      const data = await res.json();
-      console.log("Response status:", res.status);
-      console.log("Response data:", data);
-
-      if (res.ok) {
-        setSavedType(learningType);
-        setTimeout(() => window.location.reload(), 2000);
-      } else {
-        console.error("Napaka:", data);
-        alert(`Napaka pri shranjevanju: ${data.message}`);
-      }
+      setError("");
+      await api.patch("/users/learning-type", { learningType });
+      setSavedType(learningType);
+      await refreshProfile();
     } catch (err) {
-      console.error("Napaka pri shranjevanju učnega tipa:", err);
-      alert("Strežnik ni dosegljiv");
+      setError(getApiErrorMessage(err, "Streznik ni dosegljiv"));
     }
   }
 
@@ -96,7 +77,25 @@ function QuizWrapper() {
           alignItems: "center",
           gap: 8,
         }}>
-          {typeLabels[savedType]} — shranjeno ✓
+          {typeLabels[savedType]} shranjeno
+        </div>
+      )}
+      {error && (
+        <div style={{
+          position: "fixed",
+          top: 16,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 9999,
+          background: "#fef2f2",
+          color: "#b91c1c",
+          padding: "10px 18px",
+          borderRadius: 12,
+          fontSize: 14,
+          fontWeight: 600,
+          border: "1px solid #fecaca",
+        }}>
+          {error}
         </div>
       )}
       <LearningTypeQuiz onComplete={handleQuizComplete} />

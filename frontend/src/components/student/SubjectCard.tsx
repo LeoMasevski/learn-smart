@@ -1,10 +1,11 @@
+import { getSubjectIcon } from "../../utils/subjectIcons";
+
 type Subject = {
   title: string;
   subtitle: string;
   progress: number;
   grade: number;
   color: string;
-  icon: string;
 };
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
 };
 
 const SubjectCard = ({ subject, onOpen }: Props) => {
+  const SubjectIcon = getSubjectIcon(subject.title);
+
   return (
     <div
       className="student-subject-card"
@@ -23,7 +26,7 @@ const SubjectCard = ({ subject, onOpen }: Props) => {
         style={{ background: subject.color }}
       >
         <span className="student-card-icon">
-          {subject.icon}
+          <SubjectIcon className="w-6 h-6 text-white" strokeWidth={2.25} />
         </span>
 
         <span className="student-card-percent">

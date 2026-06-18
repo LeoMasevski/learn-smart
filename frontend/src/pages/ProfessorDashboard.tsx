@@ -7,14 +7,18 @@ import SubjectFormModal from "../components/professor/SubjectFormModal";
 import LessonList from "../components/professor/LessonList";
 import LessonFormModal from "../components/professor/LessonFormModal";
 import ProfessorLessonVariantPreview from "../components/professor/ProfessorLessonVariantPreview";
+import ProfessorStudentsView from "../components/professor/ProfessorStudentsView";
+import ProfessorQuizList from "../components/professor/ProfessorQuizList";
+import ProfessorSubjectStatistics from "../components/professor/ProfessorSubjectStatistics";
+import { getSubjectIcon } from "../utils/subjectIcons";
 
-const SUBJECT_COLORS = [
-  { bg: "bg-violet-100", icon: "💻" },
-  { bg: "bg-sky-100", icon: "🎨" },
-  { bg: "bg-emerald-100", icon: "📚" },
-  { bg: "bg-amber-100", icon: "🧠" },
-  { bg: "bg-rose-100", icon: "🔬" },
-  { bg: "bg-fuchsia-100", icon: "🎯" },
+const SUBJECT_STYLES = [
+  { bg: "bg-violet-100", text: "text-violet-600" },
+  { bg: "bg-sky-100", text: "text-sky-600" },
+  { bg: "bg-emerald-100", text: "text-emerald-600" },
+  { bg: "bg-amber-100", text: "text-amber-600" },
+  { bg: "bg-rose-100", text: "text-rose-600" },
+  { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
 ];
 
 const ProfessorDashboard = () => {
@@ -34,6 +38,10 @@ const ProfessorDashboard = () => {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
   const [previewLesson, setPreviewLesson] = useState<Lesson | null>(null);
+  const [generatingVariantsId, setGeneratingVariantsId] = useState<string | undefined>(undefined);
+  const [generationWatchUntil, setGenerationWatchUntil] = useState<number | null>(null);
+  const [subjectTab, setSubjectTab] = useState<"gradivo" | "studenti" | "kvizi" | "statistika">("gradivo");
+  const [totalStudents, setTotalStudents] = useState<number | null>(null);
 
   const fetchSubjects = async () => {
     try {
@@ -48,16 +56,34 @@ const ProfessorDashboard = () => {
     }
   };
 
-  const fetchLessons = async () => {
+  const fetchLessons = async (options: { silent?: boolean } = {}) => {
     try {
-      setLoadingLessons(true);
+      if (!options.silent) {
+        setLoadingLessons(true);
+      }
       setLessonsError("");
       const res = await api.get("/lessons");
       setLessons(res.data);
     } catch {
       setLessonsError("Napaka pri nalaganju gradiv.");
     } finally {
-      setLoadingLessons(false);
+      if (!options.silent) {
+        setLoadingLessons(false);
+      }
+    }
+  };
+
+  const fetchTotalStudents = async (subjectList: typeof subjects) => {
+    if (subjectList.length === 0) { setTotalStudents(0); return; }
+    try {
+      const results = await Promise.all(
+        subjectList.map((s) => api.get(`/subjects/${s.id}/students`))
+      );
+      const ids = new Set<string>();
+      results.forEach((r) => r.data.students?.forEach((st: { id: string }) => ids.add(st.id)));
+      setTotalStudents(ids.size);
+    } catch {
+      setTotalStudents(null);
     }
   };
 
@@ -65,6 +91,26 @@ const ProfessorDashboard = () => {
     fetchSubjects();
     fetchLessons();
   }, []);
+
+  useEffect(() => {
+    if (!loadingSubjects) fetchTotalStudents(subjects);
+  }, [loadingSubjects, subjects]);
+
+  useEffect(() => {
+    if (!generationWatchUntil) return;
+
+    const intervalId = window.setInterval(() => {
+      if (Date.now() > generationWatchUntil) {
+        setGenerationWatchUntil(null);
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      fetchLessons({ silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [generationWatchUntil]);
 
   const selectedLessons = lessons.filter(
     (lesson) => lesson.subject_id === selectedSubject?.id
@@ -102,6 +148,19 @@ const ProfessorDashboard = () => {
     fetchLessons();
   };
 
+  const generateVariants = async (lesson: Lesson) => {
+    setGeneratingVariantsId(lesson.id);
+    try {
+      await api.post(`/lessons/${lesson.id}/generate-variants`);
+      setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
+      await fetchLessons({ silent: true });
+    } catch {
+      setLessonsError("Napaka pri generiranju variant. Poskusi znova.");
+    } finally {
+      setGeneratingVariantsId(undefined);
+    }
+  };
+
   // ── Home view ────────────────────────────────────────────────────────────────
   const renderHome = () => (
     <>
@@ -136,7 +195,7 @@ const ProfessorDashboard = () => {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
           <p className="text-sm text-slate-500">Predmeti</p>
           <h3 className="mt-2 text-3xl font-semibold text-slate-900">
@@ -157,6 +216,18 @@ const ProfessorDashboard = () => {
               lessons.length
             )}
           </h3>
+        </div>
+
+        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
+          <p className="text-sm text-slate-500">Vpisani študenti</p>
+          <h3 className="mt-2 text-3xl font-semibold text-slate-900">
+            {totalStudents === null ? (
+              <span className="inline-block w-10 h-8 bg-slate-100 rounded-lg animate-pulse" />
+            ) : (
+              totalStudents
+            )}
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">Unikatnih po vseh predmetih</p>
         </div>
 
         <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-3xl p-6 shadow-sm text-white">
@@ -214,7 +285,8 @@ const ProfessorDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {subjects.map((subject, index) => {
-            const { bg, icon } = SUBJECT_COLORS[index % SUBJECT_COLORS.length];
+            const { bg, text } = SUBJECT_STYLES[index % SUBJECT_STYLES.length];
+            const SubjectIcon = getSubjectIcon(subject.name, index);
             const subjectLessonCount = lessons.filter((l) => l.subject_id === subject.id).length;
 
             return (
@@ -223,7 +295,9 @@ const ProfessorDashboard = () => {
                 className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-lg transition duration-300 flex flex-col"
               >
                 <div className={`h-28 ${bg} p-5 flex items-start justify-between`}>
-                  <span className="text-4xl">{icon}</span>
+                  <div className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center">
+                    <SubjectIcon className={`w-7 h-7 ${text}`} strokeWidth={2.25} />
+                  </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className="bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full text-slate-600 text-xs font-semibold">
                       Predmet
@@ -283,6 +357,7 @@ const ProfessorDashboard = () => {
           onClick={() => {
             setSelectedSubject(null);
             setPreviewLesson(null);
+            setSubjectTab("gradivo");
           }}
           className="mb-5 inline-flex items-center gap-1.5 text-violet-600 font-semibold hover:text-violet-800 transition text-sm"
         >
@@ -322,83 +397,129 @@ const ProfessorDashboard = () => {
           </div>
         </div>
 
-        {/* Lessons section */}
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Učno gradivo</h2>
-            <p className="text-slate-500 text-sm">Prezentacije in dodatno gradivo za predmet.</p>
-          </div>
-          {selectedLessons.length > 0 && (
-            <span className="text-sm text-slate-400 font-medium">
-              {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
-            </span>
-          )}
+        {/* Tab navigation */}
+        <div className="mb-6 flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">
+          {(["gradivo", "kvizi", "studenti", "statistika"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { setSubjectTab(tab); setPreviewLesson(null); }}
+              className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
+                subjectTab === tab
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {tab === "gradivo" ? "📚 Učno gradivo" : tab === "kvizi" ? "🧠 Kvizi" : tab === "studenti" ? "👥 Študenti" : "📊 Statistika"}
+            </button>
+          ))}
         </div>
 
-        {/* Lessons error */}
-        {lessonsError && (
-          <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 flex items-center gap-3">
-            <span className="font-medium">{lessonsError}</span>
-            <button onClick={fetchLessons} className="ml-auto text-sm font-semibold underline">
-              Poskusi znova
-            </button>
-          </div>
-        )}
+        {subjectTab === "gradivo" && (
+          <>
+            {/* Lessons section */}
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Učno gradivo</h2>
+                <p className="text-slate-500 text-sm">Prezentacije in dodatno gradivo za predmet.</p>
+              </div>
+              {selectedLessons.length > 0 && (
+                <span className="text-sm text-slate-400 font-medium">
+                  {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
+                </span>
+              )}
+            </div>
 
-        {loadingLessons ? (
-          <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6 space-y-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="flex gap-4 animate-pulse">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl shrink-0" />
-                <div className="flex-1">
-                  <div className="h-4 bg-slate-100 rounded w-1/3 mb-2" />
-                  <div className="h-3 bg-slate-50 rounded w-2/3" />
+            {/* Lessons error */}
+            {lessonsError && (
+              <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 flex items-center gap-3">
+                <span className="font-medium">{lessonsError}</span>
+                <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline">
+                  Poskusi znova
+                </button>
+              </div>
+            )}
+
+            {loadingLessons ? (
+              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6 space-y-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex gap-4 animate-pulse">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl shrink-0" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-slate-100 rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-slate-50 rounded w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                <LessonList
+                  lessons={selectedLessons}
+                  onEdit={openEditLesson}
+                  onDelete={deleteLesson}
+                  onPreview={setPreviewLesson}
+                  onGenerateVariants={generateVariants}
+                  generatingVariantsId={generatingVariantsId}
+                  activePreviewId={previewLesson?.id}
+                />
+              </div>
+            )}
+
+            {/* AI Preview panel */}
+            {previewLesson && (
+              <div className="mt-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+                  <div>
+                    <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5">
+                      ✨ AI Predogled
+                    </p>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {previewLesson.title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "")}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setPreviewLesson(null)}
+                    className="rounded-xl bg-slate-100 px-4 py-2 text-slate-600 hover:bg-slate-200 font-medium text-sm transition flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Zapri
+                  </button>
+                </div>
+                <div className="p-6">
+                  <ProfessorLessonVariantPreview
+                    lessonId={previewLesson.id}
+                    lessonTitle={previewLesson.title}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-            <LessonList
-              lessons={selectedLessons}
-              onEdit={openEditLesson}
-              onDelete={deleteLesson}
-              onPreview={setPreviewLesson}
-              activePreviewId={previewLesson?.id}
-            />
-          </div>
+            )}
+          </>
         )}
 
-        {/* AI Preview panel */}
-        {previewLesson && (
-          <div className="mt-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-              <div>
-                <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5">
-                  ✨ AI Predogled
-                </p>
-                <h2 className="text-xl font-bold text-slate-900">
-                  {previewLesson.title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "")}
-                </h2>
-              </div>
-              <button
-                onClick={() => setPreviewLesson(null)}
-                className="rounded-xl bg-slate-100 px-4 py-2 text-slate-600 hover:bg-slate-200 font-medium text-sm transition flex items-center gap-1.5"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Zapri
-              </button>
-            </div>
+        {subjectTab === "kvizi" && (
+          <ProfessorQuizList subjectId={selectedSubject.id} lessons={selectedLessons} />
+        )}
 
-            <div className="p-6">
-              <ProfessorLessonVariantPreview
-                lessonId={previewLesson.id}
-                lessonTitle={previewLesson.title}
-              />
+        {subjectTab === "studenti" && (
+          <>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-slate-900">Vpisani študenti</h2>
+              <p className="text-slate-500 text-sm">Pregled učnih tipov in analitika za predmet.</p>
             </div>
-          </div>
+            <ProfessorStudentsView subjectId={selectedSubject.id} />
+          </>
+        )}
+
+        {subjectTab === "statistika" && (
+          <>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-slate-900">Uspeh študentov</h2>
+              <p className="text-slate-500 text-sm">Pregled napredka in uspešnosti reševanja kvizov za vsakega študenta.</p>
+            </div>
+            <ProfessorSubjectStatistics subjectId={selectedSubject.id} />
+          </>
         )}
       </>
     );
@@ -412,10 +533,12 @@ const ProfessorDashboard = () => {
         onSelectSubject={(s) => {
           setSelectedSubject(s);
           setPreviewLesson(null);
+          setSubjectTab("gradivo");
         }}
         goHome={() => {
           setSelectedSubject(null);
           setPreviewLesson(null);
+          setSubjectTab("gradivo");
         }}
         onCreateSubject={openCreateSubject}
       />
@@ -443,7 +566,8 @@ const ProfessorDashboard = () => {
           onClose={() => setLessonModalOpen(false)}
           onSaved={() => {
             setLessonModalOpen(false);
-            fetchLessons();
+            setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
+            fetchLessons({ silent: true });
           }}
         />
       )}

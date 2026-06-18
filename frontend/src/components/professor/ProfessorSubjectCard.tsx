@@ -1,4 +1,5 @@
 import type { Subject } from "../../types/professor";
+import { getSubjectIcon } from "../../utils/subjectIcons";
 
 type Props = {
   subject: Subject;
@@ -8,11 +9,13 @@ type Props = {
 };
 
 const ProfessorSubjectCard = ({ subject, onOpen, onEdit, onDelete }: Props) => {
+  const SubjectIcon = getSubjectIcon(subject.name);
+
   return (
     <div className="group overflow-hidden rounded-[28px] bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
       <div className="relative h-36 bg-gradient-to-br from-fuchsia-500 via-violet-500 to-sky-400 p-6">
-        <div className="absolute top-5 left-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur-md shadow">
-          📘
+        <div className="absolute top-5 left-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow">
+          <SubjectIcon className="w-7 h-7 text-white" strokeWidth={2.25} />
         </div>
 
         <div className="absolute bottom-5 right-5 rounded-full bg-white/20 px-4 py-1 text-sm font-semibold text-white backdrop-blur-md">
