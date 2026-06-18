@@ -15,7 +15,7 @@ export type Lesson = {
   created_by?: string;
   created_at?: string;
   updated_at?: string;
-  lesson_variants?: { learning_type: string }[];
+  lesson_variants?: { learning_type: string; content_blocks?: unknown[] }[];
 };
 
 export type LearningType = "VISUAL" | "AUDITORY" | "KINESTHETIC";

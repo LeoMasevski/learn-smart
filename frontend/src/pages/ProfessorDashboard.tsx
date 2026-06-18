@@ -39,6 +39,7 @@ const ProfessorDashboard = () => {
 
   const [previewLesson, setPreviewLesson] = useState<Lesson | null>(null);
   const [generatingVariantsId, setGeneratingVariantsId] = useState<string | undefined>(undefined);
+  const [generationWatchUntil, setGenerationWatchUntil] = useState<number | null>(null);
   const [subjectTab, setSubjectTab] = useState<"gradivo" | "studenti" | "kvizi" | "statistika">("gradivo");
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
 
@@ -55,16 +56,20 @@ const ProfessorDashboard = () => {
     }
   };
 
-  const fetchLessons = async () => {
+  const fetchLessons = async (options: { silent?: boolean } = {}) => {
     try {
-      setLoadingLessons(true);
+      if (!options.silent) {
+        setLoadingLessons(true);
+      }
       setLessonsError("");
       const res = await api.get("/lessons");
       setLessons(res.data);
     } catch {
       setLessonsError("Napaka pri nalaganju gradiv.");
     } finally {
-      setLoadingLessons(false);
+      if (!options.silent) {
+        setLoadingLessons(false);
+      }
     }
   };
 
@@ -90,6 +95,22 @@ const ProfessorDashboard = () => {
   useEffect(() => {
     if (!loadingSubjects) fetchTotalStudents(subjects);
   }, [loadingSubjects, subjects]);
+
+  useEffect(() => {
+    if (!generationWatchUntil) return;
+
+    const intervalId = window.setInterval(() => {
+      if (Date.now() > generationWatchUntil) {
+        setGenerationWatchUntil(null);
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      fetchLessons({ silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [generationWatchUntil]);
 
   const selectedLessons = lessons.filter(
     (lesson) => lesson.subject_id === selectedSubject?.id
@@ -131,7 +152,8 @@ const ProfessorDashboard = () => {
     setGeneratingVariantsId(lesson.id);
     try {
       await api.post(`/lessons/${lesson.id}/generate-variants`);
-      await fetchLessons();
+      setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
+      await fetchLessons({ silent: true });
     } catch {
       setLessonsError("Napaka pri generiranju variant. Poskusi znova.");
     } finally {
@@ -411,7 +433,7 @@ const ProfessorDashboard = () => {
             {lessonsError && (
               <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 flex items-center gap-3">
                 <span className="font-medium">{lessonsError}</span>
-                <button onClick={fetchLessons} className="ml-auto text-sm font-semibold underline">
+                <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline">
                   Poskusi znova
                 </button>
               </div>
@@ -544,7 +566,8 @@ const ProfessorDashboard = () => {
           onClose={() => setLessonModalOpen(false)}
           onSaved={() => {
             setLessonModalOpen(false);
-            fetchLessons();
+            setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
+            fetchLessons({ silent: true });
           }}
         />
       )}
