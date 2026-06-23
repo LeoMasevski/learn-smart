@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/api";
 import type { Subject, Lesson } from "../types/professor";
 
@@ -10,6 +10,8 @@ import ProfessorLessonVariantPreview from "../components/professor/ProfessorLess
 import ProfessorStudentsView from "../components/professor/ProfessorStudentsView";
 import ProfessorQuizList from "../components/professor/ProfessorQuizList";
 import ProfessorSubjectStatistics from "../components/professor/ProfessorSubjectStatistics";
+import ConfirmDialog from "../components/professor/ConfirmDialog";
+import Toast from "../components/professor/Toast";
 import { getSubjectIcon } from "../utils/subjectIcons";
 
 const SUBJECT_STYLES = [
@@ -20,6 +22,17 @@ const SUBJECT_STYLES = [
   { bg: "bg-rose-100", text: "text-rose-600" },
   { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
 ];
+
+type ConfirmState = {
+  type: "subject" | "lesson";
+  id: string;
+  name: string;
+};
+
+type ToastState = {
+  message: string;
+  type: "success" | "error" | "info";
+};
 
 const ProfessorDashboard = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -42,6 +55,14 @@ const ProfessorDashboard = () => {
   const [generationWatchUntil, setGenerationWatchUntil] = useState<number | null>(null);
   const [subjectTab, setSubjectTab] = useState<"gradivo" | "studenti" | "kvizi" | "statistika">("gradivo");
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const showToast = useCallback((message: string, type: ToastState["type"] = "success") => {
+    setToast({ message, type });
+  }, []);
 
   const fetchSubjects = async () => {
     try {
@@ -126,10 +147,34 @@ const ProfessorDashboard = () => {
     setSubjectModalOpen(true);
   };
 
-  const deleteSubject = async (id: string) => {
-    await api.delete(`/subjects/${id}`);
-    setSelectedSubject(null);
-    fetchSubjects();
+  const requestDeleteSubject = (subject: Subject) => {
+    setConfirmState({ type: "subject", id: subject.id, name: subject.name });
+  };
+
+  const requestDeleteLesson = (id: string, name: string) => {
+    setConfirmState({ type: "lesson", id, name });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmState) return;
+    const { type, id, name } = confirmState;
+    setConfirmState(null);
+
+    try {
+      if (type === "subject") {
+        await api.delete(`/subjects/${id}`);
+        setSelectedSubject(null);
+        fetchSubjects();
+        showToast(`Predmet "${name}" je bil izbrisan.`);
+      } else {
+        await api.delete(`/lessons/${id}`);
+        if (previewLesson?.id === id) setPreviewLesson(null);
+        fetchLessons();
+        showToast(`Gradivo "${name}" je bilo izbrisano.`);
+      }
+    } catch {
+      showToast("Napaka pri brisanju. Poskusi znova.", "error");
+    }
   };
 
   const openCreateLesson = () => {
@@ -142,20 +187,15 @@ const ProfessorDashboard = () => {
     setLessonModalOpen(true);
   };
 
-  const deleteLesson = async (id: string) => {
-    await api.delete(`/lessons/${id}`);
-    if (previewLesson?.id === id) setPreviewLesson(null);
-    fetchLessons();
-  };
-
   const generateVariants = async (lesson: Lesson) => {
     setGeneratingVariantsId(lesson.id);
     try {
       await api.post(`/lessons/${lesson.id}/generate-variants`);
       setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
       await fetchLessons({ silent: true });
+      showToast("Generiranje AI variant je v teku...", "info");
     } catch {
-      setLessonsError("Napaka pri generiranju variant. Poskusi znova.");
+      showToast("Napaka pri generiranju variant. Poskusi znova.", "error");
     } finally {
       setGeneratingVariantsId(undefined);
     }
@@ -165,27 +205,27 @@ const ProfessorDashboard = () => {
   const renderHome = () => (
     <>
       {/* Header */}
-      <div className="mb-6 rounded-[32px] bg-white p-8 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mb-6 rounded-[28px] bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-semibold text-slate-900">Profesor Dashboard</h1>
-            <p className="mt-2 text-base text-slate-500">Upravljanje predmetov in učnega gradiva.</p>
+            <h1 className="text-2xl sm:text-4xl font-semibold text-slate-900">Profesor Dashboard</h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-500">Upravljanje predmetov in učnega gradiva.</p>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-row sm:flex-col gap-2 sm:gap-3">
             <button
               onClick={openCreateSubject}
-              className="rounded-2xl bg-violet-500 px-6 py-3 text-white font-semibold shadow-sm hover:bg-violet-600 transition flex items-center gap-2"
+              className="flex-1 sm:flex-none rounded-2xl bg-violet-500 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-sm hover:bg-violet-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Dodaj predmet
             </button>
             <button
               onClick={openCreateLesson}
-              className="rounded-2xl bg-white border border-violet-200 px-6 py-3 text-violet-700 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center gap-2"
+              className="flex-1 sm:flex-none rounded-2xl bg-white border border-violet-200 px-4 sm:px-6 py-2.5 sm:py-3 text-violet-700 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Dodaj gradivo
@@ -195,56 +235,56 @@ const ProfessorDashboard = () => {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500">Predmeti</p>
-          <h3 className="mt-2 text-3xl font-semibold text-slate-900">
+      <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
+          <p className="text-xs sm:text-sm text-slate-500">Predmeti</p>
+          <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {loadingSubjects ? (
-              <span className="inline-block w-10 h-8 bg-slate-100 rounded-lg animate-pulse" />
+              <span className="inline-block w-10 h-7 sm:h-8 bg-slate-100 rounded-lg animate-pulse" />
             ) : (
               subjects.length
             )}
           </h3>
         </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500">Učna gradiva</p>
-          <h3 className="mt-2 text-3xl font-semibold text-slate-900">
+        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
+          <p className="text-xs sm:text-sm text-slate-500">Učna gradiva</p>
+          <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {loadingLessons ? (
-              <span className="inline-block w-10 h-8 bg-slate-100 rounded-lg animate-pulse" />
+              <span className="inline-block w-10 h-7 sm:h-8 bg-slate-100 rounded-lg animate-pulse" />
             ) : (
               lessons.length
             )}
           </h3>
         </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500">Vpisani študenti</p>
-          <h3 className="mt-2 text-3xl font-semibold text-slate-900">
+        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200 col-span-2 sm:col-span-1">
+          <p className="text-xs sm:text-sm text-slate-500">Vpisani študenti</p>
+          <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {totalStudents === null ? (
-              <span className="inline-block w-10 h-8 bg-slate-100 rounded-lg animate-pulse" />
+              <span className="inline-block w-10 h-7 sm:h-8 bg-slate-100 rounded-lg animate-pulse" />
             ) : (
               totalStudents
             )}
           </h3>
-          <p className="mt-1 text-xs text-slate-400">Unikatnih po vseh predmetih</p>
+          <p className="mt-0.5 text-xs text-slate-400">Unikatnih po vseh predmetih</p>
         </div>
 
-        <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-3xl p-6 shadow-sm text-white">
-          <p className="text-violet-100 text-sm font-medium mb-1">✨ AI pomočnik</p>
-          <h2 className="text-lg font-semibold">Generiranje učnih variant</h2>
+        <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm text-white col-span-2 sm:col-span-1">
+          <p className="text-violet-100 text-xs sm:text-sm font-medium mb-1">✨ AI pomočnik</p>
+          <h2 className="text-sm sm:text-lg font-semibold">Generiranje učnih variant</h2>
           <p className="mt-1 text-violet-200 text-xs">Vizualni · Slušni · Kinestetični</p>
         </div>
       </div>
 
       {/* Subjects error */}
       {subjectsError && (
-        <div className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 flex items-center gap-3">
+        <div className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
           </svg>
-          <span className="font-medium">{subjectsError}</span>
-          <button onClick={fetchSubjects} className="ml-auto text-sm font-semibold underline hover:no-underline">
+          <span className="font-medium text-sm">{subjectsError}</span>
+          <button onClick={fetchSubjects} className="ml-auto text-sm font-semibold underline hover:no-underline shrink-0">
             Poskusi znova
           </button>
         </div>
@@ -252,27 +292,28 @@ const ProfessorDashboard = () => {
 
       {/* Subjects loading skeleton */}
       {loadingSubjects ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 animate-pulse">
-              <div className="h-32 bg-slate-100" />
-              <div className="p-6">
-                <div className="h-6 bg-slate-100 rounded-lg mb-3 w-3/4" />
-                <div className="h-4 bg-slate-50 rounded mb-2 w-full" />
-                <div className="h-4 bg-slate-50 rounded mb-6 w-2/3" />
-                <div className="flex gap-3">
-                  <div className="flex-1 h-11 bg-slate-100 rounded-2xl" />
-                  <div className="w-16 h-11 bg-slate-50 rounded-2xl" />
+              <div className="h-28 bg-slate-100" />
+              <div className="p-5 sm:p-6">
+                <div className="h-5 bg-slate-100 rounded-lg mb-3 w-3/4" />
+                <div className="h-3 bg-slate-50 rounded mb-2 w-full" />
+                <div className="h-3 bg-slate-50 rounded mb-5 w-2/3" />
+                <div className="flex gap-2">
+                  <div className="flex-1 h-10 bg-slate-100 rounded-2xl" />
+                  <div className="w-14 h-10 bg-slate-50 rounded-2xl" />
+                  <div className="w-14 h-10 bg-slate-50 rounded-2xl" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : subjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-3xl bg-white border border-dashed border-slate-200">
+        <div className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4 rounded-3xl bg-white border border-dashed border-slate-200">
           <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center text-3xl">🎓</div>
-          <p className="text-slate-700 font-semibold text-xl">Nimate še predmetov</p>
-          <p className="text-slate-400 text-sm text-center max-w-sm">
+          <p className="text-slate-700 font-semibold text-lg sm:text-xl">Nimate še predmetov</p>
+          <p className="text-slate-400 text-sm text-center max-w-sm px-4">
             Začnite z dodajanjem prvega predmeta in nato ustvarite AI-generirano učno gradivo.
           </p>
           <button
@@ -283,7 +324,7 @@ const ProfessorDashboard = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {subjects.map((subject, index) => {
             const { bg, text } = SUBJECT_STYLES[index % SUBJECT_STYLES.length];
             const SubjectIcon = getSubjectIcon(subject.name, index);
@@ -308,9 +349,9 @@ const ProfessorDashboard = () => {
                   </div>
                 </div>
 
-                <div className="p-6 flex flex-col flex-1">
-                  <h2 className="text-xl font-semibold text-slate-900 mb-2">{subject.name}</h2>
-                  <p className="text-slate-500 mb-5 text-sm flex-1 min-h-[40px]">
+                <div className="p-5 sm:p-6 flex flex-col flex-1">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-2">{subject.name}</h2>
+                  <p className="text-slate-500 mb-4 text-sm flex-1 min-h-[36px]">
                     {subject.description || "Brez opisa predmeta."}
                   </p>
 
@@ -320,21 +361,29 @@ const ProfessorDashboard = () => {
                         setSelectedSubject(subject);
                         setPreviewLesson(null);
                       }}
-                      className="flex-1 bg-violet-500 hover:bg-violet-600 text-white py-2.5 rounded-2xl font-semibold transition text-sm"
+                      className="flex-1 bg-violet-500 hover:bg-violet-600 text-white py-2.5 rounded-xl font-semibold transition text-sm"
                     >
                       Odpri
                     </button>
                     <button
                       onClick={() => openEditSubject(subject)}
-                      className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition text-sm"
+                      className="px-3 sm:px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition text-sm"
+                      title="Uredi predmet"
                     >
-                      Uredi
+                      <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span className="hidden sm:inline">Uredi</span>
                     </button>
                     <button
-                      onClick={() => deleteSubject(subject.id)}
-                      className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-500 font-semibold transition text-sm"
+                      onClick={() => requestDeleteSubject(subject)}
+                      className="px-3 sm:px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 font-semibold transition text-sm"
+                      title="Izbriši predmet"
                     >
-                      Briši
+                      <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="hidden sm:inline">Briši</span>
                     </button>
                   </div>
                 </div>
@@ -367,15 +416,15 @@ const ProfessorDashboard = () => {
           Nazaj na predmete
         </button>
 
-        <div className="mb-6 rounded-3xl bg-gradient-to-br from-violet-500 to-fuchsia-500 p-8 shadow-md text-white">
-          <div className="flex items-start justify-between gap-4">
+        <div className="mb-6 rounded-3xl bg-gradient-to-br from-violet-500 to-fuchsia-500 p-6 sm:p-8 shadow-md text-white">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
               <span className="text-violet-200 text-sm font-medium">Aktiven predmet</span>
-              <h1 className="mt-1 text-3xl font-bold">{selectedSubject.name}</h1>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-bold">{selectedSubject.name}</h1>
               {selectedSubject.description && (
                 <p className="mt-2 text-violet-100 text-sm">{selectedSubject.description}</p>
               )}
-              <div className="mt-3 flex items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold">
                   {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
                 </span>
@@ -387,7 +436,7 @@ const ProfessorDashboard = () => {
 
             <button
               onClick={openCreateLesson}
-              className="shrink-0 rounded-2xl bg-white text-violet-700 px-6 py-3 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center gap-2"
+              className="shrink-0 rounded-2xl bg-white text-violet-700 px-5 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -398,20 +447,22 @@ const ProfessorDashboard = () => {
         </div>
 
         {/* Tab navigation */}
-        <div className="mb-6 flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">
-          {(["gradivo", "kvizi", "studenti", "statistika"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => { setSubjectTab(tab); setPreviewLesson(null); }}
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
-                subjectTab === tab
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {tab === "gradivo" ? "📚 Učno gradivo" : tab === "kvizi" ? "🧠 Kvizi" : tab === "studenti" ? "👥 Študenti" : "📊 Statistika"}
-            </button>
-          ))}
+        <div className="mb-6 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit min-w-full sm:min-w-0">
+            {(["gradivo", "kvizi", "studenti", "statistika"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setSubjectTab(tab); setPreviewLesson(null); }}
+                className={`rounded-xl px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                  subjectTab === tab
+                    ? "bg-white text-violet-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {tab === "gradivo" ? "📚 Gradivo" : tab === "kvizi" ? "🧠 Kvizi" : tab === "studenti" ? "👥 Študenti" : "📊 Statistika"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {subjectTab === "gradivo" && (
@@ -419,11 +470,11 @@ const ProfessorDashboard = () => {
             {/* Lessons section */}
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Učno gradivo</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900">Učno gradivo</h2>
                 <p className="text-slate-500 text-sm">Prezentacije in dodatno gradivo za predmet.</p>
               </div>
               {selectedLessons.length > 0 && (
-                <span className="text-sm text-slate-400 font-medium">
+                <span className="text-sm text-slate-400 font-medium shrink-0 ml-3">
                   {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
                 </span>
               )}
@@ -431,16 +482,19 @@ const ProfessorDashboard = () => {
 
             {/* Lessons error */}
             {lessonsError && (
-              <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 flex items-center gap-3">
-                <span className="font-medium">{lessonsError}</span>
-                <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline">
+              <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+                </svg>
+                <span className="font-medium text-sm">{lessonsError}</span>
+                <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline shrink-0">
                   Poskusi znova
                 </button>
               </div>
             )}
 
             {loadingLessons ? (
-              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6 space-y-4">
+              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
                 {[1, 2].map((i) => (
                   <div key={i} className="flex gap-4 animate-pulse">
                     <div className="w-10 h-10 bg-slate-100 rounded-xl shrink-0" />
@@ -456,7 +510,7 @@ const ProfessorDashboard = () => {
                 <LessonList
                   lessons={selectedLessons}
                   onEdit={openEditLesson}
-                  onDelete={deleteLesson}
+                  onDelete={requestDeleteLesson}
                   onPreview={setPreviewLesson}
                   onGenerateVariants={generateVariants}
                   generatingVariantsId={generatingVariantsId}
@@ -468,26 +522,26 @@ const ProfessorDashboard = () => {
             {/* AI Preview panel */}
             {previewLesson && (
               <div className="mt-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+                <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100">
                   <div>
                     <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5">
                       ✨ AI Predogled
                     </p>
-                    <h2 className="text-xl font-bold text-slate-900">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                       {previewLesson.title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "")}
                     </h2>
                   </div>
                   <button
                     onClick={() => setPreviewLesson(null)}
-                    className="rounded-xl bg-slate-100 px-4 py-2 text-slate-600 hover:bg-slate-200 font-medium text-sm transition flex items-center gap-1.5"
+                    className="rounded-xl bg-slate-100 px-3 sm:px-4 py-2 text-slate-600 hover:bg-slate-200 font-medium text-sm transition flex items-center gap-1.5 shrink-0 ml-3"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    Zapri
+                    <span className="hidden sm:inline">Zapri</span>
                   </button>
                 </div>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <ProfessorLessonVariantPreview
                     lessonId={previewLesson.id}
                     lessonTitle={previewLesson.title}
@@ -505,7 +559,7 @@ const ProfessorDashboard = () => {
         {subjectTab === "studenti" && (
           <>
             <div className="mb-4">
-              <h2 className="text-xl font-bold text-slate-900">Vpisani študenti</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Vpisani študenti</h2>
               <p className="text-slate-500 text-sm">Pregled učnih tipov in analitika za predmet.</p>
             </div>
             <ProfessorStudentsView subjectId={selectedSubject.id} />
@@ -515,7 +569,7 @@ const ProfessorDashboard = () => {
         {subjectTab === "statistika" && (
           <>
             <div className="mb-4">
-              <h2 className="text-xl font-bold text-slate-900">Uspeh študentov</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Uspeh študentov</h2>
               <p className="text-slate-500 text-sm">Pregled napredka in uspešnosti reševanja kvizov za vsakega študenta.</p>
             </div>
             <ProfessorSubjectStatistics subjectId={selectedSubject.id} />
@@ -541,12 +595,36 @@ const ProfessorDashboard = () => {
           setSubjectTab("gradivo");
         }}
         onCreateSubject={openCreateSubject}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        {!selectedSubject ? renderHome() : renderSubjectDetail()}
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile top bar */}
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 transition"
+            aria-label="Odpri meni"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h1 className="text-base font-bold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent">
+            🎓 LearnSmart
+          </h1>
+          {selectedSubject && (
+            <span className="text-sm text-slate-500 truncate">{selectedSubject.name}</span>
+          )}
+        </header>
 
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          {!selectedSubject ? renderHome() : renderSubjectDetail()}
+        </main>
+      </div>
+
+      {/* Modals */}
       {subjectModalOpen && (
         <SubjectFormModal
           subject={editingSubject}
@@ -554,6 +632,7 @@ const ProfessorDashboard = () => {
           onSaved={() => {
             setSubjectModalOpen(false);
             fetchSubjects();
+            showToast(editingSubject ? "Predmet je bil posodobljen." : "Predmet je bil ustvarjen.");
           }}
         />
       )}
@@ -568,7 +647,34 @@ const ProfessorDashboard = () => {
             setLessonModalOpen(false);
             setGenerationWatchUntil(Date.now() + 2 * 60 * 1000);
             fetchLessons({ silent: true });
+            if (editingLesson) {
+              showToast("Gradivo je bilo posodobljeno.");
+            }
           }}
+        />
+      )}
+
+      {/* Confirm delete dialog */}
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.type === "subject" ? "Izbriši predmet?" : "Izbriši gradivo?"}
+          message={
+            confirmState.type === "subject"
+              ? `Predmet "${confirmState.name}" in vse njegovo gradivo bodo trajno izbrisani. Tega dejanja ni mogoče razveljaviti.`
+              : `Gradivo "${confirmState.name}" bo trajno izbrisano. Tega dejanja ni mogoče razveljaviti.`
+          }
+          confirmLabel="Izbriši"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>
