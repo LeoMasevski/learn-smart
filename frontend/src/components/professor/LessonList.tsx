@@ -3,7 +3,7 @@ import type { Lesson } from "../../types/professor";
 type Props = {
   lessons: Lesson[];
   onEdit: (lesson: Lesson) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
   onPreview: (lesson: Lesson) => void;
   onGenerateVariants: (lesson: Lesson) => void;
   generatingVariantsId?: string;
@@ -145,7 +145,7 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
                 </button>
 
                 <button
-                  onClick={() => onDelete(lesson.id)}
+                  onClick={() => onDelete(lesson.id, cleanTitle(lesson.title))}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

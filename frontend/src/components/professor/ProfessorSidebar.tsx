@@ -6,6 +6,8 @@ type Props = {
   goHome: () => void;
   onSelectSubject: (subject: Subject) => void;
   onCreateSubject: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 };
 
 const ProfessorSidebar = ({
@@ -14,32 +16,58 @@ const ProfessorSidebar = ({
   goHome,
   onSelectSubject,
   onCreateSubject,
+  isOpen = true,
+  onClose,
 }: Props) => {
-  return (
-    <aside className="w-72 min-h-screen bg-white border-r border-slate-200 flex flex-col">
+  const handleSelect = (subject: Subject) => {
+    onSelectSubject(subject);
+    onClose?.();
+  };
+
+  const handleHome = () => {
+    goHome();
+    onClose?.();
+  };
+
+  const sidebarContent = (
+    <aside className="w-72 min-h-screen bg-white border-r border-slate-200 flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 pt-6 pb-4 border-b border-slate-100">
-        <h1
-          onClick={goHome}
-          className="cursor-pointer text-2xl font-extrabold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent"
-        >
-          🎓 LearnSmart
-        </h1>
-        <p className="text-xs text-slate-400 mt-0.5 font-medium">Profesor</p>
+      <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h1
+            onClick={handleHome}
+            className="cursor-pointer text-2xl font-extrabold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent"
+          >
+            🎓 LearnSmart
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5 font-medium">Profesor</p>
+        </div>
+        {/* Close button – only visible on mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            aria-label="Zapri meni"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-4 py-4 overflow-y-auto">
         {/* Home */}
         <button
-          onClick={goHome}
+          onClick={handleHome}
           className={`w-full rounded-2xl px-4 py-3 text-left font-semibold text-sm transition mb-1 flex items-center gap-2 ${
             !selectedSubject
               ? "bg-violet-100 text-violet-700"
               : "text-slate-600 hover:bg-slate-100"
           }`}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18" />
           </svg>
           Vsi predmeti
@@ -55,7 +83,7 @@ const ProfessorSidebar = ({
               {subjects.map((subject) => (
                 <button
                   key={subject.id}
-                  onClick={() => onSelectSubject(subject)}
+                  onClick={() => handleSelect(subject)}
                   className={`w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium transition truncate ${
                     selectedSubject?.id === subject.id
                       ? "bg-violet-500 text-white shadow-sm"
@@ -71,7 +99,7 @@ const ProfessorSidebar = ({
 
         {/* Add subject */}
         <button
-          onClick={onCreateSubject}
+          onClick={() => { onCreateSubject(); onClose?.(); }}
           className="mt-4 w-full rounded-2xl border border-dashed border-violet-200 px-4 py-2.5 text-sm font-semibold text-violet-500 hover:bg-violet-50 transition flex items-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -89,6 +117,26 @@ const ProfessorSidebar = ({
         </div>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar – always visible on lg+ */}
+      <div className="hidden lg:block shrink-0">{sidebarContent}</div>
+
+      {/* Mobile drawer */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={onClose}
+          />
+          {/* Panel */}
+          <div className="relative">{sidebarContent}</div>
+        </div>
+      )}
+    </>
   );
 };
 
