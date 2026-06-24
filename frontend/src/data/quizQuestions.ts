@@ -20,12 +20,8 @@ export interface LearningTypeResult {
   strengths: string[];
   tips: string[];
   color: string;
-  emoji: string;
 }
 
-// VPRAŠALNIK — 12 vprašanj, vsako s 3 možnostmi (V/S/K) - odvisno glede na kateri tip
-// Točkovanje: vsak odgovor prinese 1 točko za določen tip.
-// Na koncu se sešteje skupaj in določi prevladujoč tip.
 export const quizQuestions: QuizQuestion[] = [
   {
     id: 1,
@@ -186,7 +182,6 @@ export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
       'Gledaj izobraževalne videe in animacije',
     ],
     color: '#4F8EF7',
-    emoji: '👁️',
   },
   auditory: {
     type: 'auditory',
@@ -205,7 +200,6 @@ export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
       'Učiš se z rimami ali ritmičnimi ponavljanji',
     ],
     color: '#10B981',
-    emoji: '🎧',
   },
   kinesthetic: {
     type: 'kinesthetic',
@@ -224,6 +218,5 @@ export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
       'Aplikuj snov na resnične situacije',
     ],
     color: '#F59E0B',
-    emoji: '🤲',
   },
 };

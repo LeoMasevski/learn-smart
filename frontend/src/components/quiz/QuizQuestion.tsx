@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
 import { QuizQuestion as QuizQuestionType, LearningType } from '../../data/quizQuestions';
 
 interface QuizQuestionProps {
@@ -22,7 +22,6 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
   const [selected, setSelected] = useState<string | null>(null);
   const [animateIn, setAnimateIn] = useState(false);
 
-  // Reset & animate when question changes
   useEffect(() => {
     setSelected(null);
     setAnimateIn(false);
@@ -76,7 +75,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
                 {option.id.slice(-1).toUpperCase()}
               </span>
               <span className="option-text">{option.text}</span>
-              {isSelected && <span className="option-check">✓</span>}
+              {isSelected && <Check className="option-check" size={16} />}
             </button>
           );
         })}

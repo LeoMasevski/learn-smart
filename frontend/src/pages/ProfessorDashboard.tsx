@@ -1,6 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/api";
 import type { Subject, Lesson } from "../types/professor";
+import {
+  GraduationCap,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  Sparkles,
+  BookOpen,
+  Brain,
+  Users,
+  BarChart3,
+  Menu,
+  AlertCircle,
+  X,
+} from "lucide-react";
 
 import ProfessorSidebar from "../components/professor/ProfessorSidebar";
 import SubjectFormModal from "../components/professor/SubjectFormModal";
@@ -201,7 +216,6 @@ const ProfessorDashboard = () => {
     }
   };
 
-  // ── Home view ────────────────────────────────────────────────────────────────
   const renderHome = () => (
     <>
       {/* Header */}
@@ -216,18 +230,14 @@ const ProfessorDashboard = () => {
               onClick={openCreateSubject}
               className="flex-1 sm:flex-none rounded-2xl bg-violet-500 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-sm hover:bg-violet-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
               Dodaj predmet
             </button>
             <button
               onClick={openCreateLesson}
               className="flex-1 sm:flex-none rounded-2xl bg-white border border-violet-200 px-4 sm:px-6 py-2.5 sm:py-3 text-violet-700 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
               Dodaj gradivo
             </button>
           </div>
@@ -271,7 +281,9 @@ const ProfessorDashboard = () => {
         </div>
 
         <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm text-white col-span-2 sm:col-span-1">
-          <p className="text-violet-100 text-xs sm:text-sm font-medium mb-1">✨ AI pomočnik</p>
+          <p className="text-violet-100 text-xs sm:text-sm font-medium mb-1 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} /> AI pomočnik
+          </p>
           <h2 className="text-sm sm:text-lg font-semibold">Generiranje učnih variant</h2>
           <p className="mt-1 text-violet-200 text-xs">Vizualni · Slušni · Kinestetični</p>
         </div>
@@ -280,9 +292,7 @@ const ProfessorDashboard = () => {
       {/* Subjects error */}
       {subjectsError && (
         <div className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
-          </svg>
+          <AlertCircle className="w-5 h-5 shrink-0" strokeWidth={2} />
           <span className="font-medium text-sm">{subjectsError}</span>
           <button onClick={fetchSubjects} className="ml-auto text-sm font-semibold underline hover:no-underline shrink-0">
             Poskusi znova
@@ -311,7 +321,9 @@ const ProfessorDashboard = () => {
         </div>
       ) : subjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4 rounded-3xl bg-white border border-dashed border-slate-200">
-          <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center text-3xl">🎓</div>
+          <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center text-3xl">
+            <GraduationCap className="w-8 h-8 text-violet-500" strokeWidth={2} />
+          </div>
           <p className="text-slate-700 font-semibold text-lg sm:text-xl">Nimate še predmetov</p>
           <p className="text-slate-400 text-sm text-center max-w-sm px-4">
             Začnite z dodajanjem prvega predmeta in nato ustvarite AI-generirano učno gradivo.
@@ -370,9 +382,7 @@ const ProfessorDashboard = () => {
                       className="px-3 sm:px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition text-sm"
                       title="Uredi predmet"
                     >
-                      <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <Pencil className="w-4 h-4 sm:hidden" strokeWidth={2} />
                       <span className="hidden sm:inline">Uredi</span>
                     </button>
                     <button
@@ -380,9 +390,7 @@ const ProfessorDashboard = () => {
                       className="px-3 sm:px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 font-semibold transition text-sm"
                       title="Izbriši predmet"
                     >
-                      <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Trash2 className="w-4 h-4 sm:hidden" strokeWidth={2} />
                       <span className="hidden sm:inline">Briši</span>
                     </button>
                   </div>
@@ -395,7 +403,6 @@ const ProfessorDashboard = () => {
     </>
   );
 
-  // ── Subject detail view ──────────────────────────────────────────────────────
   const renderSubjectDetail = () => {
     if (!selectedSubject) return null;
 
@@ -410,9 +417,7 @@ const ProfessorDashboard = () => {
           }}
           className="mb-5 inline-flex items-center gap-1.5 text-violet-600 font-semibold hover:text-violet-800 transition text-sm"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           Nazaj na predmete
         </button>
 
@@ -428,8 +433,8 @@ const ProfessorDashboard = () => {
                 <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold">
                   {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
                 </span>
-                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold">
-                  ✨ AI variante
+                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" strokeWidth={2.25} /> AI variante
                 </span>
               </div>
             </div>
@@ -438,9 +443,7 @@ const ProfessorDashboard = () => {
               onClick={openCreateLesson}
               className="shrink-0 rounded-2xl bg-white text-violet-700 px-5 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
               Dodaj gradivo
             </button>
           </div>
@@ -449,17 +452,24 @@ const ProfessorDashboard = () => {
         {/* Tab navigation */}
         <div className="mb-6 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
           <div className="flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit min-w-full sm:min-w-0">
-            {(["gradivo", "kvizi", "studenti", "statistika"] as const).map((tab) => (
+            {([
+              { key: "gradivo", label: "Gradivo", icon: BookOpen },
+              { key: "kvizi", label: "Kvizi", icon: Brain },
+              { key: "studenti", label: "Študenti", icon: Users },
+              { key: "statistika", label: "Statistika", icon: BarChart3 },
+            ] as const).map((tab) => (
               <button
-                key={tab}
-                onClick={() => { setSubjectTab(tab); setPreviewLesson(null); }}
-                className={`rounded-xl px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                  subjectTab === tab
+                key={tab.key}
+                onClick={() => { setSubjectTab(tab.key); setPreviewLesson(null); }}
+                className={`rounded-xl px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold transition whitespace-nowrap flex items-center gap-1.5 ${
+                  subjectTab === tab.key
                     ? "bg-white text-violet-700 shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
                 }`}
+                aria-current={subjectTab === tab.key ? "true" : undefined}
               >
-                {tab === "gradivo" ? "📚 Gradivo" : tab === "kvizi" ? "🧠 Kvizi" : tab === "studenti" ? "👥 Študenti" : "📊 Statistika"}
+                <tab.icon className="w-4 h-4" strokeWidth={2.25} />
+                {tab.label}
               </button>
             ))}
           </div>
@@ -483,9 +493,7 @@ const ProfessorDashboard = () => {
             {/* Lessons error */}
             {lessonsError && (
               <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
-                </svg>
+                <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={2} />
                 <span className="font-medium text-sm">{lessonsError}</span>
                 <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline shrink-0">
                   Poskusi znova
@@ -524,8 +532,8 @@ const ProfessorDashboard = () => {
               <div className="mt-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100">
                   <div>
-                    <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5">
-                      ✨ AI Predogled
+                    <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} /> AI Predogled
                     </p>
                     <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                       {previewLesson.title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "")}
@@ -535,9 +543,7 @@ const ProfessorDashboard = () => {
                     onClick={() => setPreviewLesson(null)}
                     className="rounded-xl bg-slate-100 px-3 sm:px-4 py-2 text-slate-600 hover:bg-slate-200 font-medium text-sm transition flex items-center gap-1.5 shrink-0 ml-3"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-4 h-4" strokeWidth={2} />
                     <span className="hidden sm:inline">Zapri</span>
                   </button>
                 </div>
@@ -605,14 +611,13 @@ const ProfessorDashboard = () => {
           <button
             onClick={() => setSidebarOpen(true)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 transition"
-            aria-label="Odpri meni"
+            aria-label="Odpri meni (predmeti, profil in odjava)"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <Menu className="w-5 h-5" strokeWidth={2} />
           </button>
-          <h1 className="text-base font-bold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent">
-            🎓 LearnSmart
+          <h1 className="text-base font-bold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent flex items-center gap-1.5">
+            <GraduationCap className="w-4 h-4 text-violet-600" strokeWidth={2.25} />
+            LearnSmart
           </h1>
           {selectedSubject && (
             <span className="text-sm text-slate-500 truncate">{selectedSubject.name}</span>

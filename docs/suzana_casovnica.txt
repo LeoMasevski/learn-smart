@@ -63,3 +63,19 @@ loading error/empty stanja
 8.6 
 "Moj napredek" page dodan 
 uporabljeni mock podatki dokler ni backenda
+
+10.6 
+Delo za dashboard
+popravek nekaj stvari
+
+15.6
+Izgled results od študentov ki naredijo kvize
+izgled te strani
+
+16.6 
+Popravljanje authcontext
+
+23.6
+izboljšava videza
+omogočanje več gumbov za razumljivost
+omogočanje odjave profesorja
