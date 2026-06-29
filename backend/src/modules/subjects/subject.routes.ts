@@ -13,7 +13,7 @@ import { requireRole } from "../../middleware/role.middleware";
 
 const router = Router();
 
-router.get("/", handleGetAllSubjects);
+router.get("/", requireAuth, handleGetAllSubjects);
 
 router.get(
   "/:id/students",
@@ -29,7 +29,7 @@ router.get(
   handleGetSubjectStudentProgress
 );
 
-router.get("/:id", handleGetSubjectById);
+router.get("/:id", requireAuth, handleGetSubjectById);
 
 router.post(
   "/",
