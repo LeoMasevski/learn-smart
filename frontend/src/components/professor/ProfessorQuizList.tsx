@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BookOpen } from "lucide-react";
 import { api } from "../../api/api";
 import type { SubjectQuiz, Lesson } from "../../types/professor";
 import ProfessorQuizModal from "./ProfessorQuizModal";
@@ -72,7 +73,9 @@ function QuizCard({ quiz, onDelete, onViewResults }: { quiz: SubjectQuiz; onDele
             </span>
           </div>
           {lessonNames && (
-            <p className="text-xs text-slate-400 mt-1 truncate">📚 {lessonNames}</p>
+            <p className="text-xs text-slate-400 mt-1 truncate flex items-center gap-1">
+              <BookOpen className="w-3 h-3 shrink-0" strokeWidth={2} /> {lessonNames}
+            </p>
           )}
         </div>
 

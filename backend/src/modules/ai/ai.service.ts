@@ -53,7 +53,7 @@ export async function generateSubjectQuiz(
       ? `Generate ONLY multiple_choice questions (4 options each, exactly one correct).`
       : questionType === "true_false"
       ? `Generate ONLY true_false questions. Options must always be exactly ["Res", "Ni res"]. correct_answer must be either "Res" or "Ni res".`
-      : `Generate a mix of multiple_choice and true_false questions. For true_false: options must be ["Res", "Ni res"].`;
+      : `Generate a mix of multiple_choice and true_false questions. For multiple_choice: exactly 4 options, exactly one correct. For true_false: options must always be exactly ["Res", "Ni res"] and correct_answer must be either "Res" or "Ni res".`;
 
   const prompt = `
 You are a quiz generator for an e-learning platform called LearnSmart. Generate quiz questions IN SLOVENIAN language.
@@ -111,12 +111,66 @@ ${combinedContent}
     throw new Error("Gemini response does not contain valid questions array");
   }
 
-  return parsed.questions.map(
-    (q: Omit<GeneratedQuestion, "order_index">, idx: number) => ({
-      ...q,
-      order_index: idx,
-    })
-  );
+  const sanitized = sanitizeGeneratedQuestions(parsed.questions);
+  if (sanitized.length === 0) {
+    throw new Error("Gemini response did not contain any valid questions");
+  }
+
+  return sanitized;
+}
+
+// Gemini sometimes drifts on question_type casing/format or correct_answer matching,
+// especially in "mixed" mode where it has to alternate two different shapes per item.
+// Drop only the malformed entries instead of letting one bad row fail the whole DB insert.
+function sanitizeGeneratedQuestions(rawQuestions: unknown[]): GeneratedQuestion[] {
+  const sanitized: Omit<GeneratedQuestion, "order_index">[] = [];
+
+  for (const raw of rawQuestions) {
+    const q = raw as any;
+    const question = typeof q?.question === "string" ? q.question.trim() : "";
+    const explanation = typeof q?.explanation === "string" ? q.explanation.trim() : "";
+    const rawType = typeof q?.question_type === "string" ? q.question_type.trim().toLowerCase() : "";
+
+    if (!question) continue;
+
+    if (rawType === "true_false" || rawType === "true/false" || rawType === "boolean") {
+      const rawAnswer = String(q?.correct_answer ?? "").trim().toLowerCase();
+      const correct_answer =
+        rawAnswer === "res" || rawAnswer === "true" || rawAnswer === "drži" || rawAnswer === "drzi"
+          ? "Res"
+          : rawAnswer === "ni res" || rawAnswer === "false" || rawAnswer === "ne drži" || rawAnswer === "ne drzi"
+          ? "Ni res"
+          : null;
+      if (!correct_answer) continue;
+
+      sanitized.push({
+        question,
+        options: ["Res", "Ni res"],
+        correct_answer,
+        question_type: "true_false",
+        explanation,
+      });
+      continue;
+    }
+
+    if (rawType === "multiple_choice" || rawType === "multiple choice" || rawType === "single_choice") {
+      const options = Array.isArray(q?.options)
+        ? q.options.map((o: unknown) => String(o ?? "").trim()).filter((o: string) => o.length > 0)
+        : [];
+      const correct_answer = String(q?.correct_answer ?? "").trim();
+      if (options.length < 2 || !options.includes(correct_answer)) continue;
+
+      sanitized.push({
+        question,
+        options,
+        correct_answer,
+        question_type: "multiple_choice",
+        explanation,
+      });
+    }
+  }
+
+  return sanitized.map((q, idx) => ({ ...q, order_index: idx }));
 }
 
 export async function generateLessonVariantsFromText(

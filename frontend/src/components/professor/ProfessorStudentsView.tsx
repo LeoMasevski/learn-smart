@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Users, Eye, Headphones, PersonStanding } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { api } from "../../api/api";
 import type { SubjectStudentsResponse, StudentInSubject, LearningType } from "../../types/professor";
 
@@ -71,17 +73,19 @@ function StudentRow({ student }: { student: StudentInSubject }) {
 function StatCard({
   label,
   value,
-  icon,
+  icon: Icon,
   colorClass,
 }: {
   label: string;
   value: number;
-  icon: string;
+  icon: LucideIcon;
   colorClass: string;
 }) {
   return (
     <div className={`rounded-2xl p-4 flex items-center gap-3 ${colorClass}`}>
-      <span className="text-2xl">{icon}</span>
+      <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5" strokeWidth={2.25} />
+      </div>
       <div>
         <p className="text-xs font-semibold opacity-70">{label}</p>
         <p className="text-2xl font-bold">{value}</p>
@@ -142,10 +146,10 @@ const ProfessorStudentsView = ({ subjectId }: Props) => {
     <div>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Skupaj vpisanih" value={data.total} icon="👥" colorClass="bg-violet-50 text-violet-800" />
-        <StatCard label="Vizualni" value={data.learningTypeCounts.VISUAL} icon="👁️" colorClass="bg-sky-50 text-sky-800" />
-        <StatCard label="Slušni" value={data.learningTypeCounts.AUDITORY} icon="🎧" colorClass="bg-emerald-50 text-emerald-800" />
-        <StatCard label="Kinestetični" value={data.learningTypeCounts.KINESTHETIC} icon="🤸" colorClass="bg-amber-50 text-amber-800" />
+        <StatCard label="Skupaj vpisanih" value={data.total} icon={Users} colorClass="bg-violet-50 text-violet-800" />
+        <StatCard label="Vizualni" value={data.learningTypeCounts.VISUAL} icon={Eye} colorClass="bg-sky-50 text-sky-800" />
+        <StatCard label="Slušni" value={data.learningTypeCounts.AUDITORY} icon={Headphones} colorClass="bg-emerald-50 text-emerald-800" />
+        <StatCard label="Kinestetični" value={data.learningTypeCounts.KINESTHETIC} icon={PersonStanding} colorClass="bg-amber-50 text-amber-800" />
       </div>
 
       {/* Needs-help alert */}
