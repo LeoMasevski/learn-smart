@@ -1,3 +1,4 @@
+import { BookOpen, FileText, NotebookText, FolderOpen } from "lucide-react";
 import type { Lesson } from "../../types/professor";
 
 type Props = {
@@ -12,12 +13,12 @@ type Props = {
 
 const getLessonMeta = (title: string) => {
   if (title.startsWith("[Prezentacija]")) {
-    return { label: "Prezentacija", icon: "📚", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-100" };
+    return { label: "Prezentacija", icon: BookOpen, bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-100" };
   }
   if (title.startsWith("[Dodatno gradivo]")) {
-    return { label: "Dodatno gradivo", icon: "📄", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-100" };
+    return { label: "Dodatno gradivo", icon: FileText, bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-100" };
   }
-  return { label: "Gradivo", icon: "📖", bg: "bg-slate-50", color: "text-slate-600", border: "border-slate-100" };
+  return { label: "Gradivo", icon: NotebookText, bg: "bg-slate-50", color: "text-slate-600", border: "border-slate-100" };
 };
 
 const cleanTitle = (title: string) =>
@@ -36,7 +37,9 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
   if (lessons.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="w-14 h-14 bg-violet-50 rounded-full flex items-center justify-center text-2xl">📂</div>
+        <div className="w-14 h-14 bg-violet-50 rounded-full flex items-center justify-center">
+          <FolderOpen className="w-6 h-6 text-violet-400" strokeWidth={2} />
+        </div>
         <p className="text-slate-700 font-semibold text-lg">Ni učnega gradiva</p>
         <p className="text-slate-400 text-sm text-center max-w-xs">
           Za ta predmet še ni dodanega gradiva. Kliknite + Dodaj gradivo.
@@ -71,8 +74,8 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4 min-w-0">
                 {/* Type icon */}
-                <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg ${meta.bg} border ${meta.border}`}>
-                  {meta.icon}
+                <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${meta.bg} border ${meta.border}`}>
+                  <meta.icon className={`w-5 h-5 ${meta.color}`} strokeWidth={2.25} />
                 </div>
 
                 <div className="min-w-0">
