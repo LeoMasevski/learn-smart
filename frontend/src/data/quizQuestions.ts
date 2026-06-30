@@ -15,6 +15,7 @@ export interface QuizQuestion {
 
 export interface LearningTypeResult {
   type: LearningType;
+  emoji: string;
   label: string;
   description: string;
   strengths: string[];
@@ -167,6 +168,7 @@ export function calculateLearningType(answers: Record<number, LearningType>): {
 export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
   visual: {
     type: 'visual',
+    emoji: '👁️',
     label: 'Vizualni učenec',
     description:
       'Informacije najlažje sprejemaš skozi slike, diagrame, barve in prostorske odnose. Vizualizacija ti pomaga razumeti kompleksne koncepte hitreje kot besedno razlaganje.',
@@ -185,6 +187,7 @@ export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
   },
   auditory: {
     type: 'auditory',
+    emoji: '🎧',
     label: 'Slušni učenec',
     description:
       'Najlažje se učiš skozi slušne informacije — poslušanje predavanj, pogovor, razpravo ali glasno ponavljanje. Zvok in ritem ti pomagata pri pomnjenju.',
@@ -203,6 +206,7 @@ export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
   },
   kinesthetic: {
     type: 'kinesthetic',
+    emoji: '🤲',
     label: 'Kinestetični učenec',
     description:
       'Najlažje se učiš z izkušnjo — z delovanjem, preizkušanjem in praktičnim delom. Abstrakcije ti postanejo jasne šele, ko jih preizkusiš v praksi.',

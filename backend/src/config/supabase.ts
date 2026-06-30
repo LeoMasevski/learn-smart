@@ -7,6 +7,11 @@ const supabaseOptions = {
   realtime: {
     transport: WebSocket as any,
   },
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
 };
 
 export const supabase = createClient(
@@ -20,3 +25,16 @@ export const supabaseAdmin = createClient(
   env.supabaseServiceRoleKey,
   supabaseOptions
 );
+
+export function createSupabaseAuthClient(accessToken?: string) {
+  return createClient(env.supabaseUrl, env.supabaseAnonKey, {
+    ...supabaseOptions,
+    global: accessToken
+      ? {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      : undefined,
+  });
+}

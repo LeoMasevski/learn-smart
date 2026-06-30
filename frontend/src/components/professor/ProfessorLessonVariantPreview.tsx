@@ -52,9 +52,21 @@ const TABS: {
 ];
 
 function isVariantGenerating(variant: LessonVariantFromApi) {
+  return getGenerationStatus(variant)?.status === "generating";
+}
+
+function isVariantFailed(variant: LessonVariantFromApi) {
+  return getGenerationStatus(variant)?.status === "failed";
+}
+
+function getGenerationStatus(variant: LessonVariantFromApi) {
   return variant.content_blocks.some(
     (block) => (block as any)?.type === "generation_status"
-  );
+  )
+    ? (variant.content_blocks.find(
+        (block) => (block as any)?.type === "generation_status"
+      ) as { type: "generation_status"; status: "generating" | "failed"; message?: string })
+    : null;
 }
 
 function getRenderableBlocks(variant: LessonVariantFromApi) {
@@ -113,17 +125,26 @@ const ProfessorLessonVariantPreview = ({ lessonId, lessonTitle }: Props) => {
     ? (getRenderableBlocks(activeVariant) as LessonData["blocks"])
     : [];
   const completedVariantCount = variants.filter(
-    (variant) => !isVariantGenerating(variant)
+    (variant) => !getGenerationStatus(variant)
   ).length;
+  const failedVariantCount = variants.filter(isVariantFailed).length;
   const hasAllVariants =
     variants.length >= TABS.length && completedVariantCount >= TABS.length;
   const isWaitingForFirstSection = loading && variants.length === 0;
+  const activeStatus = activeVariant ? getGenerationStatus(activeVariant) : null;
 
   return (
     <div>
       {error && variants.length === 0 && (
         <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
           {error}
+        </div>
+      )}
+
+      {failedVariantCount > 0 && (
+        <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="font-semibold">{failedVariantCount}/3 variant ni bilo generiranih.</span>{" "}
+          Profesor lahko ponovno sprozi generiranje variant.
         </div>
       )}
 
@@ -141,17 +162,22 @@ const ProfessorLessonVariantPreview = ({ lessonId, lessonTitle }: Props) => {
           const variant = variants.find((v) => v.learning_type === type);
           const exists = Boolean(variant);
           const isGenerating = variant ? isVariantGenerating(variant) : false;
+          const isFailed = variant ? isVariantFailed(variant) : false;
           return (
             <span
               key={type}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                exists
+                isFailed
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : exists
                   ? `${bg} ${color} border-current/20`
                   : "bg-slate-50 text-slate-400 border-slate-200"
               }`}
             >
               {icon} {label}
-              {exists && !isGenerating ? (
+              {isFailed ? (
+                <span className="ml-1 text-red-500">!</span>
+              ) : exists && !isGenerating ? (
                 <span className="ml-1 w-1.5 h-1.5 rounded-full bg-current inline-block" />
               ) : (
                 <span className="ml-1 text-slate-300">...</span>
@@ -196,6 +222,13 @@ const ProfessorLessonVariantPreview = ({ lessonId, lessonTitle }: Props) => {
               }}
             />
           </div>
+        </div>
+      ) : activeStatus?.status === "failed" ? (
+        <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-6 text-red-700">
+          <p className="font-semibold">AI generiranje za to varianto ni uspelo.</p>
+          <p className="mt-1 text-sm text-red-600">
+            {activeStatus.message || "Poskusi ponovno generiranje variant."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-2xl bg-slate-50 border border-dashed border-slate-200">

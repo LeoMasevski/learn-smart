@@ -13,6 +13,18 @@ const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 const nodeEnv = process.env.NODE_ENV || "development";
 const defaultCorsOrigins =
   nodeEnv === "production" ? "" : "http://localhost:3000,http://localhost:5173";
+const corsAllowedOrigins = (
+  process.env.CORS_ALLOWED_ORIGINS ||
+  process.env.FRONTEND_ORIGIN ||
+  defaultCorsOrigins
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const defaultFrontendOrigin =
+  corsAllowedOrigins.find((origin) => origin.includes("5173")) ||
+  corsAllowedOrigins[0] ||
+  "http://localhost:5173";
 
 if (missingEnvVars.length > 0) {
   throw new Error(
@@ -28,13 +40,7 @@ export const env = {
   supabaseServiceRoleKey: process.env.SUPABASE_SECRET_API_KEY!,
   lessonImagesBucket: process.env.SUPABASE_LESSON_IMAGES_BUCKET || "lesson_images",
   geminiApiKey: process.env.GEMINI_API_KEY!,
-  corsAllowedOrigins: (
-    process.env.CORS_ALLOWED_ORIGINS ||
-    process.env.FRONTEND_ORIGIN ||
-    defaultCorsOrigins
-  )
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  corsAllowedOrigins,
+  frontendOrigin: process.env.FRONTEND_ORIGIN || defaultFrontendOrigin,
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || "1mb",
 };

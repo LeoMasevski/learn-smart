@@ -21,6 +21,8 @@ import {
   uploadLessonImages,
 } from "../lesson-images/lessonImage.service";
 import { assertPdfBuffer } from "../../middleware/upload.middleware";
+import { getUserRole } from "../../middleware/role.middleware";
+import { isUserEnrolledInSubject } from "../user-subjects/userSubject.service";
 import { cleanString, isUuid } from "../../utils/validation";
 
 const maxLessonContentLength = 80_000;
@@ -87,6 +89,17 @@ async function generateLessonVariantsInBackground({
     );
   } catch (error) {
     console.error(`Background lesson generation failed for ${lessonId}:`, error);
+    try {
+      await Promise.all(
+        learningTypes.map((learningType) =>
+          createLessonVariant(lessonId, learningType, [
+            createGenerationFailureBlock(error),
+          ])
+        )
+      );
+    } catch (statusError) {
+      console.error("Failed to persist lesson generation failure:", statusError);
+    }
   }
 }
 
@@ -95,6 +108,40 @@ function createGenerationStatusBlock() {
     type: "generation_status",
     status: "generating",
   };
+}
+
+function createGenerationFailureBlock(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "AI generation failed";
+
+  return {
+    type: "generation_status",
+    status: "failed",
+    message: message.slice(0, 300),
+  };
+}
+
+async function canReadSubjectContent(userId: string, subjectId: string) {
+  const role = await getUserRole(userId);
+
+  if (!role) {
+    return { allowed: false, status: 403, message: "Profile not found" };
+  }
+
+  if (role === "PROFESSOR") {
+    return { allowed: true };
+  }
+
+  const { isEnrolled } = await isUserEnrolledInSubject(userId, subjectId);
+  if (!isEnrolled) {
+    return {
+      allowed: false,
+      status: 403,
+      message: "You are not enrolled in this subject",
+    };
+  }
+
+  return { allowed: true };
 }
 
 export async function handleGetAllLessons(_req: Request, res: Response) {
@@ -111,6 +158,7 @@ export async function handleGetAllLessons(_req: Request, res: Response) {
 
 export async function handleGetLessonById(req: Request, res: Response) {
   const id = req.params.id as string;
+  const user = (req as any).user;
 
   if (!isUuid(id)) {
     return res.status(400).json({ message: "Invalid lesson id" });
@@ -124,14 +172,30 @@ export async function handleGetLessonById(req: Request, res: Response) {
     });
   }
 
+  const access = await canReadSubjectContent(user.id, data.subject_id);
+  if (!access.allowed) {
+    return res.status(access.status ?? 403).json({ message: access.message });
+  }
+
   res.json(data);
 }
 
 export async function handleGetLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
+  const user = (req as any).user;
 
   if (!isUuid(lessonId)) {
     return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
+  const { data: lesson, error: lessonError } = await getLessonById(lessonId);
+  if (lessonError || !lesson) {
+    return res.status(404).json({ message: "Lesson not found" });
+  }
+
+  const access = await canReadSubjectContent(user.id, lesson.subject_id);
+  if (!access.allowed) {
+    return res.status(access.status ?? 403).json({ message: access.message });
   }
 
   const { data, error } = await getLessonVariantsByLessonId(lessonId);
@@ -313,6 +377,20 @@ export async function handleUpdateLesson(req: Request, res: Response) {
     });
   }
 
+  const shouldRegenerate =
+    title !== undefined ||
+    originalContent !== undefined ||
+    aiInstructions !== undefined;
+
+  if (shouldRegenerate) {
+    queueLessonVariantGeneration({
+      lessonId: data.id,
+      title: data.title,
+      originalContent: data.original_content,
+      aiInstructions: data.ai_instructions || "",
+    });
+  }
+
   res.json(data);
 }
 
@@ -345,9 +423,15 @@ export async function handleDeleteLesson(req: Request, res: Response) {
 
 export async function handleGetLessonsBySubject(req: Request, res: Response) {
   const subjectId = req.params.subjectId as string;
+  const user = (req as any).user;
 
   if (!isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
+  }
+
+  const access = await canReadSubjectContent(user.id, subjectId);
+  if (!access.allowed) {
+    return res.status(access.status ?? 403).json({ message: access.message });
   }
 
   const { data, error } = await getLessonsBySubjectId(subjectId);
@@ -366,6 +450,7 @@ export async function handleGetLessonVariantByLearningType(
   res: Response
 ) {
   const lessonId = req.params.id as string;
+  const user = (req as any).user;
   const learningType = (req.params.learningType as string).toUpperCase();
 
   if (!isUuid(lessonId)) {
@@ -378,6 +463,16 @@ export async function handleGetLessonVariantByLearningType(
     return res.status(400).json({
       message: "Invalid learning type",
     });
+  }
+
+  const { data: lesson, error: lessonError } = await getLessonById(lessonId);
+  if (lessonError || !lesson) {
+    return res.status(404).json({ message: "Lesson not found" });
+  }
+
+  const access = await canReadSubjectContent(user.id, lesson.subject_id);
+  if (!access.allowed) {
+    return res.status(access.status ?? 403).json({ message: access.message });
   }
 
   const { data, error } = await getLessonVariantByLearningType(

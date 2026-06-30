@@ -38,6 +38,12 @@ interface RegisterPayload {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
+  loginWithGoogle: (role: UserRole) => Promise<{ error?: string }>;
+  completeOAuthLogin: (
+    accessToken: string,
+    role: UserRole
+  ) => Promise<{ error?: string }>;
+  applySessionToken: (token: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -91,6 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchMe(token);
   }
 
+  async function applySessionToken(token: string) {
+    setStoredToken(token);
+    await fetchMe(token);
+  }
+
   async function login(email: string, password: string) {
     try {
       const { data } = await api.post("/auth/login", {
@@ -101,11 +112,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = data.session?.access_token;
       if (!token) return { error: "Ni veljavnega tokena" };
 
-      setStoredToken(token);
-      await fetchMe(token);
+      await applySessionToken(token);
       return {};
     } catch (error) {
       return { error: getApiErrorMessage(error, "Streznik ni dosegljiv") };
+    }
+  }
+
+  async function loginWithGoogle(role: UserRole) {
+    try {
+      const { data } = await api.get("/auth/google/url", {
+        params: { role },
+      });
+
+      if (!data.url) return { error: "Google prijava ni na voljo" };
+      window.location.assign(data.url);
+      return {};
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Google prijava ni uspela") };
+    }
+  }
+
+  async function completeOAuthLogin(accessToken: string, role: UserRole) {
+    try {
+      const { data } = await api.post(
+        "/auth/oauth/complete",
+        { role },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const token = data.session?.access_token || accessToken;
+      await applySessionToken(token);
+      return {};
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Google prijava ni uspela") };
     }
   }
 
@@ -119,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: fullName.trim(),
         role,
       });
-      return await login(email, password);
+      return {};
     } catch (error) {
       return { error: getApiErrorMessage(error, "Napaka pri registraciji") };
     }
@@ -136,6 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         login,
         register,
+        loginWithGoogle,
+        completeOAuthLogin,
+        applySessionToken,
         refreshProfile,
         logout,
         isAuthenticated: !!state.user,

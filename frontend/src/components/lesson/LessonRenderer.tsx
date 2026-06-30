@@ -82,6 +82,12 @@ type ImageBlockData = {
   pageNumber?: number;
 };
 
+type GenerationStatusBlockData = {
+  type: "generation_status";
+  status: "generating" | "failed";
+  message?: string;
+};
+
 export type LessonBlock =
   | HeadingBlockData
   | TextBlockData
@@ -92,7 +98,8 @@ export type LessonBlock =
   | QuizBlockData
   | ChartBlockData
   | CodeBlockData
-  | ImageBlockData;
+  | ImageBlockData
+  | GenerationStatusBlockData;
 
 export type LessonData = {
   lessonTitle: string;
@@ -140,6 +147,21 @@ function renderBlock(block: LessonBlock, index: number) {
       return <CodeBlock key={index} title={block.title} language={block.language} content={block.content} />;
     case "image":
       return <ImageBlock key={index} title={block.title} url={block.url} alt={block.alt} />;
+    case "generation_status":
+      return (
+        <div
+          key={index}
+          className={`rounded-2xl border px-5 py-4 text-sm font-medium ${
+            block.status === "failed"
+              ? "border-red-100 bg-red-50 text-red-700"
+              : "border-violet-100 bg-violet-50 text-violet-700"
+          }`}
+        >
+          {block.status === "failed"
+            ? block.message || "AI generiranje ni uspelo. Profesor lahko poskusi znova."
+            : "AI vsebina se generira. Poskusi znova čez nekaj trenutkov."}
+        </div>
+      );
     default:
       return null;
   }

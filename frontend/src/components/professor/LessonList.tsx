@@ -23,9 +23,14 @@ const getLessonMeta = (title: string) => {
 const cleanTitle = (title: string) =>
   title.replace("[Prezentacija] ", "").replace("[Dodatno gradivo] ", "");
 
-const isGeneratingVariant = (variant: NonNullable<Lesson["lesson_variants"]>[number]) =>
-  Array.isArray(variant.content_blocks) &&
-  variant.content_blocks.some((block) => (block as any)?.type === "generation_status");
+const getGenerationStatus = (variant: NonNullable<Lesson["lesson_variants"]>[number]) => {
+  if (!Array.isArray(variant.content_blocks)) return null;
+  return (
+    variant.content_blocks.find(
+      (block) => (block as any)?.type === "generation_status"
+    ) as { type: "generation_status"; status: "generating" | "failed" } | undefined
+  ) ?? null;
+};
 
 const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, generatingVariantsId, activePreviewId }: Props) => {
   if (lessons.length === 0) {
@@ -46,11 +51,16 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
         const meta = getLessonMeta(lesson.title);
         const isActive = lesson.id === activePreviewId;
         const variantCount = lesson.lesson_variants?.filter(
-          (variant) => !isGeneratingVariant(variant)
+          (variant) => !getGenerationStatus(variant)
         ).length ?? 0;
-        const placeholderCount = lesson.lesson_variants?.filter(isGeneratingVariant).length ?? 0;
+        const generatingCount = lesson.lesson_variants?.filter(
+          (variant) => getGenerationStatus(variant)?.status === "generating"
+        ).length ?? 0;
+        const failedCount = lesson.lesson_variants?.filter(
+          (variant) => getGenerationStatus(variant)?.status === "failed"
+        ).length ?? 0;
         const hasAllVariants = variantCount >= 3;
-        const isQueuedOrGenerating = placeholderCount > 0 && !hasAllVariants;
+        const isQueuedOrGenerating = generatingCount > 0 && !hasAllVariants;
         const isGenerating = generatingVariantsId === lesson.id;
 
         return (
@@ -76,8 +86,14 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
                       </span>
                     )}
                     {!hasAllVariants && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        {isQueuedOrGenerating
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                        failedCount > 0
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>
+                        {failedCount > 0
+                          ? "Generiranje ni uspelo"
+                          : isQueuedOrGenerating
                           ? "Variante se generirajo"
                           : variantCount > 0
                           ? `${variantCount}/3 variante pripravljene`
@@ -116,7 +132,11 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
                     disabled={isGenerating}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition disabled:opacity-60"
                   >
-                    {isGenerating ? "Generiranje..." : "Generiraj variante"}
+                    {isGenerating
+                      ? "Generiranje..."
+                      : failedCount > 0
+                      ? "Poskusi znova"
+                      : "Generiraj variante"}
                   </button>
                 )}
                 <button

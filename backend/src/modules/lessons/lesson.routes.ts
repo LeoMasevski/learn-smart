@@ -24,7 +24,12 @@ const aiGenerationRateLimit = rateLimit({
   keyPrefix: "lesson-ai",
 });
 
-router.get("/", handleGetAllLessons);
+router.get(
+  "/",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleGetAllLessons
+);
 
 router.get(
   "/subject/:subjectId",
@@ -61,7 +66,11 @@ router.post(
   handleGenerateLessonVariants
 );
 
-router.get("/:id", handleGetLessonById);
+router.get(
+  "/:id",
+  requireAuth,
+  handleGetLessonById
+);
 
 router.put(
   "/:id",
