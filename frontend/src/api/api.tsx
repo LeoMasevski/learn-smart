@@ -21,7 +21,9 @@ export function clearStoredToken() {
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.message;
+    const data = error.response?.data;
+    const message =
+      data?.message || data?.msg || data?.error_description || data?.error;
     return typeof message === "string" && message.trim() ? message : fallback;
   }
 

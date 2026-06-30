@@ -1,29 +1,78 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth, UserRole } from "../context/AuthContext";
 
 type Tab = "login" | "register";
 
+const PASSWORD_POLICY =
+  "Geslo mora imeti vsaj 15 znakov ter vključevati veliko črko, številko in simbol.";
+
+function isStrongPassword(password: string) {
+  return (
+    password.length >= 15 &&
+    password.length <= 128 &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
+
+function getOAuthAccessToken() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return hash.get("access_token");
+}
+
+function getOAuthRole(): UserRole {
+  const role = new URLSearchParams(window.location.search).get("role");
+  return role === "PROFESSOR" ? "PROFESSOR" : "STUDENT";
+}
+
 export default function AuthPage() {
-  const { login, register } = useAuth();
+  const {
+    login,
+    register,
+    loginWithGoogle,
+    completeOAuthLogin,
+  } = useAuth();
 
   const [tab, setTab] = useState<Tab>("login");
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const handledOAuthRef = useRef(false);
 
-  // Login fields
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Register fields
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
+  useEffect(() => {
+    const accessToken = getOAuthAccessToken();
+    if (!accessToken || handledOAuthRef.current) return;
+    handledOAuthRef.current = true;
+
+    const oauthRole = getOAuthRole();
+    setRole(oauthRole);
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    completeOAuthLogin(accessToken, oauthRole)
+      .then((result) => {
+        window.history.replaceState({}, document.title, "/");
+        if (result.error) setError(result.error);
+      })
+      .finally(() => setIsLoading(false));
+  }, [completeOAuthLogin]);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setIsLoading(true);
+
     const result = await login(loginEmail, loginPassword);
     if (result.error) setError(result.error);
     setIsLoading(false);
@@ -32,10 +81,13 @@ export default function AuthPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (regPassword.length < 8) {
-      setError("Geslo mora imeti vsaj 8 znakov.");
+    setSuccess(null);
+
+    if (!isStrongPassword(regPassword)) {
+      setError(PASSWORD_POLICY);
       return;
     }
+
     setIsLoading(true);
     const result = await register({
       email: regEmail,
@@ -43,15 +95,33 @@ export default function AuthPage() {
       fullName: regName,
       role,
     });
-    if (result.error) setError(result.error);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      const normalizedEmail = regEmail.trim().toLowerCase();
+      setLoginEmail(normalizedEmail);
+      setLoginPassword("");
+      setRegPassword("");
+      setSuccess("Račun je ustvarjen. Zdaj se lahko prijaviš.");
+      setTab("login");
+    }
     setIsLoading(false);
+  }
+
+  async function handleGoogleLogin() {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+    const result = await loginWithGoogle(role);
+    if (result.error) {
+      setError(result.error);
+      setIsLoading(false);
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f7f8fc] px-4">
       <div className="flex w-full max-w-3xl rounded-2xl overflow-hidden shadow-xl border border-gray-200">
-
-        {/* Leva stran */}
         <div className="hidden md:flex flex-col justify-between w-[42%] bg-[#1a1035] p-10">
           <span className="text-white text-xl font-bold tracking-tight">
             Learn<span className="text-purple-400">Smart</span>
@@ -59,7 +129,8 @@ export default function AuthPage() {
 
           <div>
             <h2 className="text-white text-3xl font-bold leading-snug mb-3">
-              Učenje,<br />
+              Učenje,
+              <br />
               <em className="not-italic text-purple-300">prilagojeno tebi</em>
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed">
@@ -69,46 +140,50 @@ export default function AuthPage() {
 
           <div className="flex flex-col gap-3">
             {[
-              { icon: "🧠", text: "AI prilagoditev glede na učni tip" },
-              { icon: "📈", text: "Sledenje napredku v realnem času" },
-              { icon: "🔁", text: "Spaced repetition algoritem" },
-            ].map((b) => (
+              { label: "AI prilagoditev glede na učni tip" },
+              { label: "Sledenje napredku v realnem času" },
+              { label: "Prijava z Googlom ali močnim geslom" },
+            ].map((item) => (
               <div
-                key={b.text}
+                key={item.label}
                 className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-300 text-sm"
               >
-                <span>{b.icon}</span>
-                {b.text}
+                <span className="w-2 h-2 rounded-full bg-purple-300" />
+                {item.label}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Desna stran */}
         <div className="flex-1 bg-white p-8 md:p-10 flex flex-col justify-center">
-
-          {/* Tabs */}
           <div className="flex bg-gray-100 rounded-xl p-1 mb-8">
-            {(["login", "register"] as Tab[]).map((t) => (
+            {(["login", "register"] as Tab[]).map((item) => (
               <button
-                key={t}
-                onClick={() => { setTab(t); setError(null); }}
+                key={item}
+                onClick={() => {
+                  setTab(item);
+                  setError(null);
+                  setSuccess(null);
+                }}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
-                  tab === t
+                  tab === item
                     ? "bg-white text-gray-900 shadow-sm border border-gray-200"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {t === "login" ? "Prijava" : "Registracija"}
+                {item === "login" ? "Prijava" : "Registracija"}
               </button>
             ))}
           </div>
 
-          {/* Login */}
           {tab === "login" && (
             <form onSubmit={handleLogin} className="flex flex-col gap-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Dobrodošel nazaj</h1>
-              <p className="text-sm text-gray-500 mb-6">Prijavi se in nadaljuj z učenjem.</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                Dobrodošel nazaj
+              </h1>
+              <p className="text-sm text-gray-500 mb-6">
+                Prijavi se in nadaljuj z učenjem.
+              </p>
 
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                 E-pošta
@@ -130,12 +205,11 @@ export default function AuthPage() {
               <input
                 type="password"
                 required
-                minLength={8}
                 maxLength={128}
                 autoComplete="current-password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="geslo"
                 className="mb-5 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition"
               />
 
@@ -145,19 +219,38 @@ export default function AuthPage() {
                 </p>
               )}
 
+              {success && (
+                <p className="text-emerald-700 text-sm mb-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2">
+                  {success}
+                </p>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-60"
               >
-                {isLoading ? "Prijavljam..." : "Prijava →"}
+                {isLoading ? "Prijavljam..." : "Prijava"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="mt-3 w-full py-3 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold transition disabled:opacity-60"
+              >
+                Nadaljuj z Googlom
               </button>
 
               <p className="text-center text-xs text-gray-400 mt-4">
                 Nimaš računa?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab("register")}
+                  onClick={() => {
+                    setTab("register");
+                    setError(null);
+                    setSuccess(null);
+                  }}
                   className="text-purple-600 font-semibold hover:underline"
                 >
                   Registriraj se
@@ -166,11 +259,14 @@ export default function AuthPage() {
             </form>
           )}
 
-          {/* Register */}
           {tab === "register" && (
             <form onSubmit={handleRegister} className="flex flex-col gap-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Ustvari račun</h1>
-              <p className="text-sm text-gray-500 mb-6">Pridruži se LearnSmart skupnosti.</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                Ustvari račun
+              </h1>
+              <p className="text-sm text-gray-500 mb-6">
+                Pridruži se LearnSmart skupnosti.
+              </p>
 
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                 Polno ime
@@ -206,45 +302,43 @@ export default function AuthPage() {
               <input
                 type="password"
                 required
-                minLength={8}
+                minLength={15}
                 maxLength={128}
                 autoComplete="new-password"
                 value={regPassword}
                 onChange={(e) => setRegPassword(e.target.value)}
-                placeholder="najmanj 8 znakov"
-                className="mb-5 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition"
+                placeholder="najmanj 15 znakov"
+                className="mb-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition"
               />
+              <p className="text-xs text-gray-400 mb-5">{PASSWORD_POLICY}</p>
 
-              {/* Izbira vloge */}
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 Registracija kot
               </p>
               <div className="flex gap-3 mb-5">
-                {(["STUDENT", "PROFESSOR"] as UserRole[]).map((r) => (
+                {(["STUDENT", "PROFESSOR"] as UserRole[]).map((item) => (
                   <button
-                    key={r}
+                    key={item}
                     type="button"
-                    onClick={() => setRole(r)}
-                    className={`flex-1 flex items-center gap-3 border-2 rounded-xl p-3.5 transition-all text-left ${
-                      role === r
+                    onClick={() => setRole(item)}
+                    className={`flex-1 border-2 rounded-xl p-3.5 transition-all text-left ${
+                      role === item
                         ? "border-purple-500 bg-purple-50"
                         : "border-gray-200 hover:border-purple-300"
                     }`}
                   >
-                    <span className="text-xl">{r === "STUDENT" ? "🎓" : "👨‍🏫"}</span>
-                    <div>
-                      <p className={`text-sm font-semibold ${role === r ? "text-purple-700" : "text-gray-700"}`}>
-                        {r === "STUDENT" ? "Študent / Dijak" : "Profesor"}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {r === "STUDENT" ? "Dostop do lekcij in kvizov" : "Ustvarjanje vsebin"}
-                      </p>
-                    </div>
-                    <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      role === r ? "border-purple-500 bg-purple-500" : "border-gray-300"
-                    }`}>
-                      {role === r && <span className="text-white text-xs">✓</span>}
-                    </div>
+                    <p
+                      className={`text-sm font-semibold ${
+                        role === item ? "text-purple-700" : "text-gray-700"
+                      }`}
+                    >
+                      {item === "STUDENT" ? "Študent / Dijak" : "Profesor"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {item === "STUDENT"
+                        ? "Dostop do lekcij in kvizov"
+                        : "Ustvarjanje vsebin"}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -260,14 +354,27 @@ export default function AuthPage() {
                 disabled={isLoading}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-60"
               >
-                {isLoading ? "Ustvarjam račun..." : "Ustvari račun →"}
+                {isLoading ? "Ustvarjam račun..." : "Ustvari račun"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="mt-3 w-full py-3 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold transition disabled:opacity-60"
+              >
+                Registriraj se z Googlom
               </button>
 
               <p className="text-center text-xs text-gray-400 mt-4">
                 Že imaš račun?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab("login")}
+                  onClick={() => {
+                    setTab("login");
+                    setError(null);
+                    setSuccess(null);
+                  }}
                   className="text-purple-600 font-semibold hover:underline"
                 >
                   Prijavi se
