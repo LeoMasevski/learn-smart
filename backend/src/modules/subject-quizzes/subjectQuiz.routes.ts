@@ -7,6 +7,9 @@ import {
   handleGetQuizById,
   handleCreateQuiz,
   handleGenerateQuizQuestions,
+  handleAddQuizQuestion,
+  handleUpdateQuizQuestion,
+  handleDeleteQuizQuestion,
   handleDeleteQuiz,
 } from "./subjectQuiz.controller";
 
@@ -46,6 +49,30 @@ router.post(
   requireRole(["PROFESSOR"]),
   aiGenerationRateLimit,
   handleGenerateQuizQuestions
+);
+
+// POST /quizzes/:quizId/questions  — professor only
+router.post(
+  "/:quizId/questions",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleAddQuizQuestion
+);
+
+// PUT /quizzes/:quizId/questions/:questionId  — professor only
+router.put(
+  "/:quizId/questions/:questionId",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleUpdateQuizQuestion
+);
+
+// DELETE /quizzes/:quizId/questions/:questionId  — professor only
+router.delete(
+  "/:quizId/questions/:questionId",
+  requireAuth,
+  requireRole(["PROFESSOR"]),
+  handleDeleteQuizQuestion
 );
 
 // DELETE /quizzes/:quizId  — professor only

@@ -147,6 +147,66 @@ export async function updateQuizStatus(quizId: string, status: QuizStatus) {
     .single();
 }
 
+export async function updateQuizQuestionCount(quizId: string, questionCount: number) {
+  return await supabaseAdmin
+    .from("subject_quizzes")
+    .update({ question_count: questionCount, updated_at: new Date().toISOString() })
+    .eq("id", quizId);
+}
+
+export async function getQuizQuestionById(questionId: string) {
+  return await supabaseAdmin
+    .from("quiz_questions")
+    .select("*")
+    .eq("id", questionId)
+    .single();
+}
+
+export async function updateQuizQuestion(
+  questionId: string,
+  updates: {
+    question: string;
+    options: string[] | null;
+    correct_answer: string;
+    question_type: "multiple_choice" | "true_false";
+    explanation: string | null;
+  }
+) {
+  return await supabaseAdmin
+    .from("quiz_questions")
+    .update(updates)
+    .eq("id", questionId)
+    .select()
+    .single();
+}
+
+export async function addQuizQuestion(
+  quizId: string,
+  question: {
+    question: string;
+    options: string[] | null;
+    correct_answer: string;
+    question_type: "multiple_choice" | "true_false";
+    explanation: string | null;
+    order_index: number;
+  }
+) {
+  return await supabaseAdmin
+    .from("quiz_questions")
+    .insert({ ...question, quiz_id: quizId })
+    .select()
+    .single();
+}
+
+export async function deleteQuizQuestion(questionId: string) {
+  return await supabaseAdmin
+    .from("quiz_questions")
+    .delete()
+    .eq("id", questionId)
+    .select()
+    .single();
+}
+
 export async function deleteQuiz(quizId: string) {
   return await supabaseAdmin
     .from("subject_quizzes")
