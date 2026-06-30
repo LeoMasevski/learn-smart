@@ -8,6 +8,11 @@ import {
   addLessonsToQuiz,
   savequizQuestions,
   updateQuizStatus,
+  updateQuizQuestionCount,
+  getQuizQuestionById,
+  updateQuizQuestion,
+  addQuizQuestion,
+  deleteQuizQuestion,
   deleteQuiz,
   type QuestionType,
 } from "./subjectQuiz.service";
@@ -174,6 +179,133 @@ export async function handleGenerateQuizQuestions(req: Request, res: Response) {
       message: "Failed to generate quiz questions",
     });
   }
+}
+
+function parseQuestionPayload(body: any) {
+  const question = cleanString(body.question, 2000);
+  const correctAnswer = cleanString(body.correct_answer, 500);
+  const questionType = body.question_type;
+  const explanation = body.explanation != null ? cleanString(body.explanation, 1000) || null : null;
+
+  if (!question || !correctAnswer) {
+    return { error: "question and correct_answer are required" };
+  }
+
+  if (!["multiple_choice", "true_false"].includes(questionType)) {
+    return { error: "Invalid question type" };
+  }
+
+  let options: string[];
+  if (questionType === "true_false") {
+    options = ["Res", "Ni res"];
+    if (!options.includes(correctAnswer)) {
+      return { error: 'correct_answer must be "Res" or "Ni res" for true_false questions' };
+    }
+  } else {
+    if (!Array.isArray(body.options)) {
+      return { error: "options array is required for multiple_choice questions" };
+    }
+    const cleanedOptions: string[] = body.options
+      .map((o: unknown) => cleanString(o, 500))
+      .filter((o: string) => o.length > 0);
+    if (cleanedOptions.length < 2) {
+      return { error: "multiple_choice questions require at least 2 options" };
+    }
+    if (!cleanedOptions.includes(correctAnswer)) {
+      return { error: "correct_answer must match one of the options" };
+    }
+    options = cleanedOptions;
+  }
+
+  return {
+    data: {
+      question,
+      options,
+      correct_answer: correctAnswer,
+      question_type: questionType as "multiple_choice" | "true_false",
+      explanation,
+    },
+  };
+}
+
+export async function handleAddQuizQuestion(req: Request, res: Response) {
+  const quizId = req.params.quizId as string;
+  if (!isUuid(quizId)) return res.status(400).json({ message: "Invalid quiz id" });
+
+  const { data: quiz, error: quizError } = await getQuizById(quizId);
+  if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+
+  const { data: payload, error: validationError } = parseQuestionPayload(req.body);
+  if (validationError || !payload) {
+    return res.status(400).json({ message: validationError });
+  }
+
+  const nextOrderIndex = (quiz.quiz_questions ?? []).length;
+
+  const { data: created, error } = await addQuizQuestion(quizId, {
+    ...payload,
+    order_index: nextOrderIndex,
+  });
+  if (error || !created) {
+    return res.status(500).json({ message: "Failed to add question" });
+  }
+
+  await updateQuizQuestionCount(quizId, nextOrderIndex + 1);
+
+  res.status(201).json({ message: "Question added", question: created });
+}
+
+export async function handleUpdateQuizQuestion(req: Request, res: Response) {
+  const quizId = req.params.quizId as string;
+  const questionId = req.params.questionId as string;
+  if (!isUuid(quizId) || !isUuid(questionId)) {
+    return res.status(400).json({ message: "Invalid id" });
+  }
+
+  const { data: existing, error: existingError } = await getQuizQuestionById(questionId);
+  if (existingError || !existing || existing.quiz_id !== quizId) {
+    return res.status(404).json({ message: "Question not found" });
+  }
+
+  const { data: payload, error: validationError } = parseQuestionPayload(req.body);
+  if (validationError || !payload) {
+    return res.status(400).json({ message: validationError });
+  }
+
+  const { data: updated, error } = await updateQuizQuestion(questionId, payload);
+  if (error || !updated) {
+    return res.status(500).json({ message: "Failed to update question" });
+  }
+
+  res.json({ message: "Question updated", question: updated });
+}
+
+export async function handleDeleteQuizQuestion(req: Request, res: Response) {
+  const quizId = req.params.quizId as string;
+  const questionId = req.params.questionId as string;
+  if (!isUuid(quizId) || !isUuid(questionId)) {
+    return res.status(400).json({ message: "Invalid id" });
+  }
+
+  const { data: existing, error: existingError } = await getQuizQuestionById(questionId);
+  if (existingError || !existing || existing.quiz_id !== quizId) {
+    return res.status(404).json({ message: "Question not found" });
+  }
+
+  const { data: quiz } = await getQuizById(quizId);
+  const remaining = (quiz?.quiz_questions ?? []).length - 1;
+  if (remaining < 1) {
+    return res.status(400).json({ message: "Quiz must have at least one question" });
+  }
+
+  const { data: deleted, error } = await deleteQuizQuestion(questionId);
+  if (error || !deleted) {
+    return res.status(500).json({ message: "Failed to delete question" });
+  }
+
+  await updateQuizQuestionCount(quizId, remaining);
+
+  res.json({ message: "Question deleted" });
 }
 
 export async function handleDeleteQuiz(req: Request, res: Response) {
