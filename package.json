@@ -11,7 +11,10 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:json": "cd json-server && npx json-server db.json --port 3001 --watch",
     "dev": "node scripts/dev.js",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend"
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "test:backend": "npm test --prefix backend",
+    "test:frontend": "npm test --prefix frontend",
+    "test": "npm run test:backend && npm run test:frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

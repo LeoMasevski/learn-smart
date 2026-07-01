@@ -97,11 +97,13 @@ Lesson content:
 ${combinedContent}
 `;
 
-  const response = await gemini.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: { responseMimeType: "application/json" },
-  });
+  const response = await withRetry(() =>
+    gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: "application/json" },
+    })
+  );
 
   const text = response.text;
   if (!text) throw new Error("Gemini returned empty response");
