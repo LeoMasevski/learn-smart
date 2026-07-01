@@ -28,6 +28,7 @@ import ProfessorSubjectStatistics from "../components/professor/ProfessorSubject
 import ConfirmDialog from "../components/professor/ConfirmDialog";
 import Toast from "../components/professor/Toast";
 import { getSubjectIcon } from "../utils/subjectIcons";
+import SecuritySettings from "../components/auth/SecuritySettings";
 
 const SUBJECT_STYLES = [
   { bg: "bg-violet-100", text: "text-violet-600" },
@@ -401,6 +402,9 @@ const ProfessorDashboard = () => {
         </div>
       )}
 
+      <div className="mt-6">
+        <SecuritySettings />
+      </div>
     </>
   );
 

@@ -8,6 +8,7 @@ import SubjectDetailPage from "../components/student/SubjectDetailPage";
 import StudentProgress from "./StudentProgress.tsx";
 
 import StudentQuizRunner from "../components/student/StudentQuizRunner";
+import SecuritySettings from "../components/auth/SecuritySettings";
 import type { StudentSubject, StudentLesson, LessonVariant, SubjectQuizForStudent } from "../types/student";
 import { getSubjectIcon } from "../utils/subjectIcons";
 import {
@@ -494,6 +495,8 @@ export default function StudentDashboard() {
           </div>
         )}
       </div>
+
+      <SecuritySettings />
 
       {/* Hiter pregled + povezava na napredek */}
       <div className="bg-white rounded-2xl border border-gray-100 p-8">

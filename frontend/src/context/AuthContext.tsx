@@ -16,6 +16,19 @@ export interface UserProfile {
   learning_type?: "VISUAL" | "AUDITORY" | "KINESTHETIC" | null;
 }
 
+export interface MfaFactor {
+  id: string;
+  type: string;
+  friendlyName: string | null;
+  status: string;
+  createdAt: string | null;
+}
+
+export interface MfaChallenge {
+  accessToken: string;
+  factors: MfaFactor[];
+}
+
 interface AuthUser {
   id: string;
   email: string;
@@ -36,13 +49,21 @@ interface RegisterPayload {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ error?: string; mfa?: MfaChallenge }>;
   register: (payload: RegisterPayload) => Promise<{ error?: string }>;
+  verifyMfaLogin: (
+    challenge: MfaChallenge,
+    factorId: string,
+    code: string
+  ) => Promise<{ error?: string }>;
   loginWithGoogle: (role: UserRole) => Promise<{ error?: string }>;
   completeOAuthLogin: (
     accessToken: string,
     role: UserRole
-  ) => Promise<{ error?: string }>;
+  ) => Promise<{ error?: string; mfa?: MfaChallenge }>;
   applySessionToken: (token: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   logout: () => void;
@@ -102,12 +123,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchMe(token);
   }
 
+  function getMfaChallenge(data: any): MfaChallenge | null {
+    const accessToken = data.tempSession?.access_token;
+    const factors = data.mfa?.factors;
+
+    if (!data.requiresMfa || !accessToken || !Array.isArray(factors)) {
+      return null;
+    }
+
+    return {
+      accessToken,
+      factors,
+    };
+  }
+
   async function login(email: string, password: string) {
     try {
       const { data } = await api.post("/auth/login", {
         email: email.trim().toLowerCase(),
         password,
       });
+
+      const mfa = getMfaChallenge(data);
+      if (mfa) return { mfa };
 
       const token = data.session?.access_token;
       if (!token) return { error: "Ni veljavnega tokena" };
@@ -116,6 +154,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {};
     } catch (error) {
       return { error: getApiErrorMessage(error, "Streznik ni dosegljiv") };
+    }
+  }
+
+  async function verifyMfaLogin(
+    challenge: MfaChallenge,
+    factorId: string,
+    code: string
+  ) {
+    try {
+      const { data } = await api.post(
+        "/auth/mfa/login-verify",
+        { factorId, code },
+        {
+          headers: {
+            Authorization: `Bearer ${challenge.accessToken}`,
+          },
+        }
+      );
+
+      const token = data.session?.access_token;
+      if (!token) return { error: "Ni veljavnega tokena po 2FA preverjanju" };
+
+      await applySessionToken(token);
+      return {};
+    } catch (error) {
+      return { error: getApiErrorMessage(error, "Napačna 2FA koda") };
     }
   }
 
@@ -144,6 +208,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         }
       );
+
+      const mfa = getMfaChallenge(data);
+      if (mfa) return { mfa };
 
       const token = data.session?.access_token || accessToken;
       await applySessionToken(token);
@@ -180,6 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         login,
         register,
+        verifyMfaLogin,
         loginWithGoogle,
         completeOAuthLogin,
         applySessionToken,
