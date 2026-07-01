@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useAuth, UserRole } from "../context/AuthContext";
+import { MfaChallenge, useAuth, UserRole } from "../context/AuthContext";
 
 type Tab = "login" | "register";
 
@@ -30,6 +30,7 @@ export default function AuthPage() {
   const {
     login,
     register,
+    verifyMfaLogin,
     loginWithGoogle,
     completeOAuthLogin,
   } = useAuth();
@@ -39,6 +40,8 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const handledOAuthRef = useRef(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -62,6 +65,12 @@ export default function AuthPage() {
     completeOAuthLogin(accessToken, oauthRole)
       .then((result) => {
         window.history.replaceState({}, document.title, "/");
+        if (result.mfa) {
+          setMfaChallenge(result.mfa);
+          setMfaCode("");
+          return;
+        }
+
         if (result.error) setError(result.error);
       })
       .finally(() => setIsLoading(false));
@@ -74,6 +83,13 @@ export default function AuthPage() {
     setIsLoading(true);
 
     const result = await login(loginEmail, loginPassword);
+    if (result.mfa) {
+      setMfaChallenge(result.mfa);
+      setMfaCode("");
+      setIsLoading(false);
+      return;
+    }
+
     if (result.error) setError(result.error);
     setIsLoading(false);
   }
@@ -119,6 +135,86 @@ export default function AuthPage() {
     }
   }
 
+  async function handleMfaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaChallenge) return;
+
+    const factorId = mfaChallenge.factors[0]?.id;
+    if (!factorId) {
+      setError("2FA faktor ni na voljo.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+    const result = await verifyMfaLogin(mfaChallenge, factorId, mfaCode);
+    if (result.error) setError(result.error);
+    setIsLoading(false);
+  }
+
+  if (mfaChallenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f8fc] px-4">
+        <form
+          onSubmit={handleMfaSubmit}
+          className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-8"
+        >
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            Dvofaktorska prijava
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Vnesi 6-mestno kodo iz aplikacije za preverjanje pristnosti.
+          </p>
+
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+            2FA koda
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            required
+            maxLength={6}
+            autoComplete="one-time-code"
+            value={mfaCode}
+            onChange={(e) =>
+              setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="123456"
+            className="mb-5 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition"
+          />
+
+          {error && (
+            <p className="text-red-500 text-sm mb-3 bg-red-50 border border-red-100 rounded-xl px-4 py-2">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading || mfaCode.length !== 6}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-60"
+          >
+            {isLoading ? "Preverjam..." : "Potrdi prijavo"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMfaChallenge(null);
+              setMfaCode("");
+              setError(null);
+            }}
+            className="mt-3 w-full py-2 text-sm font-semibold text-gray-500 hover:text-gray-700"
+          >
+            Nazaj na prijavo
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f7f8fc] px-4">
       <div className="flex w-full max-w-3xl rounded-2xl overflow-hidden shadow-xl border border-gray-200">
@@ -142,7 +238,7 @@ export default function AuthPage() {
             {[
               { label: "AI prilagoditev glede na učni tip" },
               { label: "Sledenje napredku v realnem času" },
-              { label: "Prijava z Googlom ali močnim geslom" },
+              { label: "Varnejša prijava z 2FA" },
             ].map((item) => (
               <div
                 key={item.label}
