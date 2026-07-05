@@ -42,9 +42,9 @@ function QuizWrapper() {
   const [error, setError] = useState("");
 
   const typeLabels: Record<LearningType, string> = {
-    visual: "Vizualni ucni tip",
-    auditory: "Slusni ucni tip",
-    kinesthetic: "Kinesteticni ucni tip",
+    visual: "Vizualni učni profil",
+    auditory: "Slušni učni profil",
+    kinesthetic: "Kinestetični učni profil",
   };
 
   async function handleQuizComplete(learningType: LearningType) {

@@ -43,9 +43,9 @@ type LearningTypeKey = "VISUAL" | "AUDITORY" | "KINESTHETIC";
 const SUBJECT_COLORS = ["#6d4cff", "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
 function getLearningTypeUI(lt: LearningTypeKey): { label: string; icon: LucideIcon; desc: string; color: string; bg: string; border: string } {
-  if (lt === "VISUAL")   return { label: "Vizualni učenec",     icon: Eye,            desc: "Vsebina z diagrami, tabelami in barvnimi poudarki.", color: "#6c63ff", bg: "#f5f3ff", border: "#ddd6fe" };
-  if (lt === "AUDITORY") return { label: "Slušni učenec",       icon: Headphones,     desc: "Narativne razlage in analogije brez slik.",           color: "#0ea5e9", bg: "#e0f2fe", border: "#bae6fd" };
-  return                        { label: "Kinestetični učenec", icon: PersonStanding, desc: "Praktični primeri in primerjave iz življenja.",        color: "#10b981", bg: "#dcfce7", border: "#bbf7d0" };
+  if (lt === "VISUAL") return { label: "Vizualni profil", icon: Eye, desc: "Vsebina z diagrami, tabelami in barvnimi poudarki.", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
+  if (lt === "AUDITORY") return { label: "Slušni profil", icon: Headphones, desc: "Pogovorne razlage, primeri in kratke obnove.", color: "#059669", bg: "#ecfdf5", border: "#a7f3d0" };
+  return { label: "Kinestetični profil", icon: PersonStanding, desc: "Praktični primeri, vaje in uporaba v resničnih situacijah.", color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
 }
 
 export default function StudentDashboard() {

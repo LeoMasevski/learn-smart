@@ -35,7 +35,7 @@ const TABS: {
   },
   {
     type: "AUDITORY",
-    label: "Slusni",
+    label: "Slušni",
     icon: "AUD",
     color: "text-sky-700",
     bg: "bg-sky-50",
@@ -43,7 +43,7 @@ const TABS: {
   },
   {
     type: "KINESTHETIC",
-    label: "Kinesteticni",
+    label: "Kinestetični",
     icon: "KIN",
     color: "text-emerald-700",
     bg: "bg-emerald-50",
@@ -143,16 +143,16 @@ const ProfessorLessonVariantPreview = ({ lessonId, lessonTitle }: Props) => {
 
       {failedVariantCount > 0 && (
         <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <span className="font-semibold">{failedVariantCount}/3 variant ni bilo generiranih.</span>{" "}
+          <span className="font-semibold">{failedVariantCount}/{TABS.length} variant ni bilo generiranih.</span>{" "}
           Profesor lahko ponovno sprozi generiranje variant.
         </div>
       )}
 
       {!hasAllVariants && (
         <div className="mb-5 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-700">
-          <span className="font-semibold">{completedVariantCount}/3 variant zakljucenih.</span>{" "}
+          <span className="font-semibold">{completedVariantCount}/{TABS.length} variant zaključenih.</span>{" "}
           {isWaitingForFirstSection
-            ? "Cakam na prve sekcije. Vsi trije tipi ostanejo vidni med generiranjem."
+            ? "Čakam na prve sekcije. Vsi profili ostanejo vidni med generiranjem."
             : "Sekcije se dodajajo sproti in predogled se samodejno osvezuje."}
         </div>
       )}

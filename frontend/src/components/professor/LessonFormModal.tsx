@@ -33,9 +33,9 @@ const MAX_PDF_MB = 10;
 const PDF_MAGIC = "%PDF-";
 
 const VARIANT_META = {
-  VISUAL: { emoji: "👁️", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
-  AUDITORY: { emoji: "👂", label: "Slušni", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-200" },
-  KINESTHETIC: { emoji: "🤸", label: "Kinestetični", bg: "bg-emerald-50", color: "text-emerald-700", border: "border-emerald-200" },
+  VISUAL: { emoji: "VIS", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
+  AUDITORY: { emoji: "AUD", label: "Slušni", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-200" },
+  KINESTHETIC: { emoji: "KIN", label: "Kinestetični", bg: "bg-emerald-50", color: "text-emerald-700", border: "border-emerald-200" },
 } as const;
 
 const LessonFormModal = ({

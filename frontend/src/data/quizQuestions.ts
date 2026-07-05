@@ -1,4 +1,6 @@
-export type LearningType = 'visual' | 'auditory' | 'kinesthetic';
+export type LearningType = "visual" | "auditory" | "kinesthetic";
+
+export const learningTypes: LearningType[] = ["visual", "auditory", "kinesthetic"];
 
 export interface QuizOption {
   id: string;
@@ -15,212 +17,242 @@ export interface QuizQuestion {
 
 export interface LearningTypeResult {
   type: LearningType;
-  emoji: string;
   label: string;
+  shortLabel: string;
   description: string;
   strengths: string[];
   tips: string[];
   color: string;
+  background: string;
+}
+
+export type QuizAnswers = Record<number, LearningType[]>;
+
+export interface LearningTypeCalculation {
+  type: LearningType;
+  scores: Record<LearningType, number>;
+  percentage: Record<LearningType, number>;
+  dominantTypes: LearningType[];
+  isMultimodal: boolean;
+  profileLabel: string;
+  profileDescription: string;
+  totalSelections: number;
 }
 
 export const quizQuestions: QuizQuestion[] = [
   {
     id: 1,
-    question: 'Ko se učiš novo snov, ti najbolj pomaga, če ...',
+    question: "Ko začneš z novo učno temo, kaj ti najprej pomaga ustvariti dober pregled?",
     options: [
-      { id: '1a', text: 'prebereš razlago in si ogledaš diagrame ali sheme', type: 'visual', points: 1 },
-      { id: '1b', text: 'nekdo razloži snov glasno ali jo sam glasno ponoviš', type: 'auditory', points: 1 },
-      { id: '1c', text: 'sam preizkusiš, narediš vajo ali ponoviš postopek', type: 'kinesthetic', points: 1 },
+      { id: "1a", text: "Skica, miselni vzorec ali diagram povezav med pojmi.", type: "visual", points: 1 },
+      { id: "1b", text: "Kratka razlaga na glas in možnost, da takoj postaviš vprašanja.", type: "auditory", points: 1 },
+      { id: "1c", text: "Primer naloge, ki jo lahko poskusiš rešiti korak za korakom.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 2,
-    question: 'Ko si zapomniš neko pot ali naslov, si jo zapomnite ...',
+    question: "Pri težji nalogi se najhitreje premakneš naprej, ko ...",
     options: [
-      { id: '2a', text: 'vizualiziraš v glavi kot zemljevid ali sliko', type: 'visual', points: 1 },
-      { id: '2b', text: 'ponavljaš si ime ulic in navodila v mislih', type: 'auditory', points: 1 },
-      { id: '2c', text: 'hodil/a po poti in si jo zapomnil/a skozi gibanje', type: 'kinesthetic', points: 1 },
+      { id: "2a", text: "problem preurediš v tabelo, sliko ali zaporedje puščic.", type: "visual", points: 1 },
+      { id: "2b", text: "razložiš, kje se zatakne, sebi ali sošolcu.", type: "auditory", points: 1 },
+      { id: "2c", text: "začneš z majhnim poskusom in sproti popravljaš postopek.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 3,
-    question: 'Pri reševanju težke naloge najpogosteje ...',
+    question: "Ko se pripravljaš na preverjanje znanja, najraje ...",
     options: [
-      { id: '3a', text: 'narišeš diagram, tabelo ali skico problema', type: 'visual', points: 1 },
-      { id: '3b', text: 'razmišljaš glasno ali pogovorit se s sošolcem', type: 'auditory', points: 1 },
-      { id: '3c', text: 'takoj začneš pisati/delati in med potjo ugotoviš rešitev', type: 'kinesthetic', points: 1 },
+      { id: "3a", text: "barvno označiš povezave, formule in pomembne razlike.", type: "visual", points: 1 },
+      { id: "3b", text: "snov poveš na glas, kot bi jo razlagal/a prijatelju.", type: "auditory", points: 1 },
+      { id: "3c", text: "rešuješ primere, stare naloge ali praktične mini izzive.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 4,
-    question: 'Kateri tip učnega gradiva ti je najljubši?',
+    question: "Profesor predstavi nov postopek. Kateri del razlage ti ostane najbolj v spominu?",
     options: [
-      { id: '4a', text: 'Infografike, miselni vzorci in barvno označeni zapisi', type: 'visual', points: 1 },
-      { id: '4b', text: 'Predavanja, podcasti in razlage v avdio obliki', type: 'auditory', points: 1 },
-      { id: '4c', text: 'Praktične naloge, laboratorijske vaje in projekti', type: 'kinesthetic', points: 1 },
+      { id: "4a", text: "Shema postopka ali primerjava med posameznimi deli.", type: "visual", points: 1 },
+      { id: "4b", text: "Besedna razlaga, zgodba ali razprava v razredu.", type: "auditory", points: 1 },
+      { id: "4c", text: "Demonstracija, poskus ali naloga, ki jo narediš sam/a.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 5,
-    question: 'Ko bereš navodila za sestavljanje ali uporabo, ...',
+    question: "Ko moraš razumeti novo aplikacijo ali orodje, bi najprej ...",
     options: [
-      { id: '5a', text: 'najprej pogledaš slike in diagrame', type: 'visual', points: 1 },
-      { id: '5b', text: 'prebereš navodila naglas ali jih poprosiš nekoga, da ti jih razloži', type: 'auditory', points: 1 },
-      { id: '5c', text: 'kar začneš sestavljati in po potrebi pogledaš navodila', type: 'kinesthetic', points: 1 },
+      { id: "5a", text: "pogledal/a postavitev zaslona, ikone in zaporedje korakov.", type: "visual", points: 1 },
+      { id: "5b", text: "prosil/a nekoga, naj ti razloži potek uporabe.", type: "auditory", points: 1 },
+      { id: "5c", text: "odprl/a orodje in preizkusil/a nekaj varnih korakov.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 6,
-    question: 'Ko si zapomniti definicijo ali formulo, jo ...',
+    question: "Katera oblika zapiskov ti je najbolj uporabna po koncu ure?",
     options: [
-      { id: '6a', text: 'napišeš in jo gledaš, dokler je ne vizualiziraš', type: 'visual', points: 1 },
-      { id: '6b', text: 'ponavljaš glasno ali jo recitiraš v ritmu', type: 'auditory', points: 1 },
-      { id: '6c', text: 'zapišeš večkrat z roko ali jo uporabiš v primeru', type: 'kinesthetic', points: 1 },
+      { id: "6a", text: "Miselni vzorci, puščice, okvirji in barvni poudarki.", type: "visual", points: 1 },
+      { id: "6b", text: "Zvočni posnetek, glasna obnova ali pogovor o snovi.", type: "auditory", points: 1 },
+      { id: "6c", text: "Rešeni primeri, mini vaje in zapiski ob poskusu.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 7,
-    question: 'Na predavanjih ali v razredu si snov zapomniš najboljše, ko ...',
+    question: "Ko si želiš preveriti, ali snov res razumeš, izbereš ...",
     options: [
-      { id: '7a', text: 'profesor piše na tablo ali kaže prezentacijo', type: 'visual', points: 1 },
-      { id: '7b', text: 'profesor razlaga z besedami in pripoveduje primere', type: 'auditory', points: 1 },
-      { id: '7c', text: 'aktivno sodeluješ, rešuješ primere ali delaš v skupini', type: 'kinesthetic', points: 1 },
+      { id: "7a", text: "da iz snovi narediš diagram ali primerjalno tabelo.", type: "visual", points: 1 },
+      { id: "7b", text: "da jo razložiš na glas brez gledanja v zapiske.", type: "auditory", points: 1 },
+      { id: "7c", text: "da jo uporabiš na novem primeru ali nalogi.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 8,
-    question: 'Ko si vzamete odmor med učenjem, najpogosteje ...',
+    question: "Pri učenju novega pojma ti največ pove ...",
     options: [
-      { id: '8a', text: 'pogledate video ali brskate po slikah', type: 'visual', points: 1 },
-      { id: '8b', text: 'poslušate glasbo ali pokličete prijatelja', type: 'auditory', points: 1 },
-      { id: '8c', text: 'vstanete in se razgibate ali naredite kaj z rokami', type: 'kinesthetic', points: 1 },
+      { id: "8a", text: "kako je pojem povezan z drugimi pojmi v prostoru ali shemi.", type: "visual", points: 1 },
+      { id: "8b", text: "kako bi ga nekdo razložil v pogovoru.", type: "auditory", points: 1 },
+      { id: "8c", text: "kaj lahko s tem pojmom narediš v resnični situaciji.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 9,
-    question: 'Katero trditev bi izbral/a za opis svojega idealnega učnega okolja?',
+    question: "Če imaš na voljo samo deset minut za ponovitev, najraje ...",
     options: [
-      { id: '9a', text: 'Tiho, urejeno, z vizualnimi pomagali na stenah', type: 'visual', points: 1 },
-      { id: '9b', text: 'Z možnostjo pogovora, razprave in glasnega razmišljanja', type: 'auditory', points: 1 },
-      { id: '9c', text: 'Dinamično, kjer se lahko premikam in preizkušam stvari', type: 'kinesthetic', points: 1 },
+      { id: "9a", text: "pogledaš zemljevid snovi, grafe ali označene dele zvezka.", type: "visual", points: 1 },
+      { id: "9b", text: "na glas obnoviš glavne ideje.", type: "auditory", points: 1 },
+      { id: "9c", text: "rešiš eno kratko nalogo za vsak glavni pojem.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 10,
-    question: 'Ko razlagaš snov sošolcu, najpogosteje ...',
+    question: "Ko delaš v skupini, najpogosteje prispevaš tako, da ...",
     options: [
-      { id: '10a', text: 'narišeš skico ali shemo na papir', type: 'visual', points: 1 },
-      { id: '10b', text: 'razlagaš z besedami in pripovedovalnim stilom', type: 'auditory', points: 1 },
-      { id: '10c', text: 'pokažeš s primerom ali skupaj naredita nalogo', type: 'kinesthetic', points: 1 },
+      { id: "10a", text: "narišeš načrt, strukturo ali razporeditev idej.", type: "visual", points: 1 },
+      { id: "10b", text: "vodiš pogovor, sprašuješ in usklajuješ razlage.", type: "auditory", points: 1 },
+      { id: "10c", text: "preizkusiš rešitev, narediš prototip ali pokažeš primer.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 11,
-    question: 'Ko bereš knjigo ali učbenik, se ti pogosteje ...',
+    question: "Katera povratna informacija ti najbolj pomaga izboljšati učenje?",
     options: [
-      { id: '11a', text: 'v glavi ustvari slika opisanega', type: 'visual', points: 1 },
-      { id: '11b', text: 'slišiš glas pripovedovalca', type: 'auditory', points: 1 },
-      { id: '11c', text: 'zamisliš kako bi to sam/a naredil/a ali doživel/a', type: 'kinesthetic', points: 1 },
+      { id: "11a", text: "Označeno, kje v rešitvi so vzorci, napake ali manjkajoče povezave.", type: "visual", points: 1 },
+      { id: "11b", text: "Pogovor, v katerem slišiš, kaj je bilo dobro in kaj popraviš.", type: "auditory", points: 1 },
+      { id: "11c", text: "Nov podoben primer, kjer lahko takoj uporabiš popravek.", type: "kinesthetic", points: 1 },
     ],
   },
   {
     id: 12,
-    question: 'Ko se učiš za izpit, ti je najlažje, če ...',
+    question: "Ko si nekaj uspešno zapomniš, je običajno zato, ker si ...",
     options: [
-      { id: '12a', text: 'narediš barvne miselne vzorce in povzetke z oznakami', type: 'visual', points: 1 },
-      { id: '12b', text: 'glasno povzameš snov ali jo posneš in predvajaš', type: 'auditory', points: 1 },
-      { id: '12c', text: 'rešuješ pretekle izpite in vaje iz prakse', type: 'kinesthetic', points: 1 },
+      { id: "12a", text: "si ustvaril/a sliko, vzorec ali razporeditev idej.", type: "visual", points: 1 },
+      { id: "12b", text: "slišal/a razlago ali jo večkrat povedal/a na glas.", type: "auditory", points: 1 },
+      { id: "12c", text: "naredil/a nalogo, poskus ali primer iz prakse.", type: "kinesthetic", points: 1 },
     ],
   },
 ];
 
-// Logika točkovanja
-export function calculateLearningType(answers: Record<number, LearningType>): {
-  type: LearningType;
-  scores: Record<LearningType, number>;
-  percentage: Record<LearningType, number>;
-} {
-  const scores: Record<LearningType, number> = {
+function emptyScores(): Record<LearningType, number> {
+  return {
     visual: 0,
     auditory: 0,
     kinesthetic: 0,
   };
-
-  Object.values(answers).forEach((type) => {
-    scores[type]++;
-  });
-
-  const total = Object.values(scores).reduce((a, b) => a + b, 0);
-  const percentage: Record<LearningType, number> = {
-    visual: Math.round((scores.visual / total) * 100),
-    auditory: Math.round((scores.auditory / total) * 100),
-    kinesthetic: Math.round((scores.kinesthetic / total) * 100),
-  };
-
-  const type = (Object.keys(scores) as LearningType[]).reduce((a, b) =>
-    scores[a] >= scores[b] ? a : b
-  );
-
-  return { type, scores, percentage };
 }
 
-// Opisi učnih tipov
+export function calculateLearningType(answers: QuizAnswers): LearningTypeCalculation {
+  const scores = emptyScores();
+
+  Object.values(answers).forEach((types) => {
+    types.forEach((type) => {
+      scores[type] += 1;
+    });
+  });
+
+  const totalSelections = Object.values(scores).reduce((sum, score) => sum + score, 0);
+  const percentage = learningTypes.reduce((acc, type) => {
+    acc[type] = totalSelections ? Math.round((scores[type] / totalSelections) * 100) : 0;
+    return acc;
+  }, emptyScores());
+
+  const sortedTypes = [...learningTypes].sort((a, b) => scores[b] - scores[a]);
+  const type = sortedTypes[0];
+  const topScore = scores[type];
+  const secondScore = scores[sortedTypes[1]] ?? 0;
+  const dominantTypes = learningTypes.filter(
+    (learningType) => topScore > 0 && topScore - scores[learningType] <= 1
+  );
+  const isMultimodal = dominantTypes.length > 1 || (topScore > 0 && topScore - secondScore <= 1);
+  const dominantLabels = dominantTypes.map((learningType) => learningTypeResults[learningType].shortLabel);
+
+  return {
+    type,
+    scores,
+    percentage,
+    dominantTypes: dominantTypes.length ? dominantTypes : [type],
+    isMultimodal,
+    profileLabel: isMultimodal ? "Mešan učni profil" : learningTypeResults[type].label,
+    profileDescription: isMultimodal
+      ? `Tvoji odgovori kažejo močno kombinacijo pristopov: ${dominantLabels.join(", ")}. LearnSmart bo za prilagoditev uporabil najmočnejši profil, pri učenju pa se ti splača mešati več strategij.`
+      : learningTypeResults[type].description,
+    totalSelections,
+  };
+}
+
 export const learningTypeResults: Record<LearningType, LearningTypeResult> = {
   visual: {
-    type: 'visual',
-    emoji: '👁️',
-    label: 'Vizualni učenec',
+    type: "visual",
+    label: "Vizualni profil",
+    shortLabel: "vizualni",
     description:
-      'Informacije najlažje sprejemaš skozi slike, diagrame, barve in prostorske odnose. Vizualizacija ti pomaga razumeti kompleksne koncepte hitreje kot besedno razlaganje.',
+      "Najhitreje napreduješ, ko lahko informacije vidiš kot odnose, vzorce, diagrame in urejene celote.",
     strengths: [
-      'Hitro razumeš diagrame in infografike',
-      'Dobro si zapomniš besedilo, ki ga bereš',
-      'Ustvarjaš jasne miselne slike',
+      "hitro opaziš povezave med pojmi",
+      "dobro uporabljaš sheme, tabele in barvne oznake",
+      "lažje razumeš snov, ko ima jasen vizualni red",
     ],
     tips: [
-      'Delaj barvne miselne vzorce in sheme',
-      'Poudarjaj in barvno označi zapiske',
-      'Pretvori besedilo v skice ali tabele',
-      'Gledaj izobraževalne videe in animacije',
+      "pretvori poglavja v miselne vzorce ali primerjalne tabele",
+      "pri formulah in definicijah označi, kaj se s čim povezuje",
+      "po učenju nariši en sam pregled snovi brez gledanja v zapiske",
     ],
-    color: '#4F8EF7',
+    color: "#2563eb",
+    background: "#eff6ff",
   },
   auditory: {
-    type: 'auditory',
-    emoji: '🎧',
-    label: 'Slušni učenec',
+    type: "auditory",
+    label: "Slušni profil",
+    shortLabel: "slušni",
     description:
-      'Najlažje se učiš skozi slušne informacije — poslušanje predavanj, pogovor, razpravo ali glasno ponavljanje. Zvok in ritem ti pomagata pri pomnjenju.',
+      "Dobro razumeš snov, ko jo slišiš, poveš na glas, razložiš nekomu drugemu ali o njej razpravljaš.",
     strengths: [
-      'Dobro si zapomniš razlage in predavanja',
-      'Enostavno slediš navodilom v ustni obliki',
-      'Učinkovito se učiš v skupinah z razpravo',
+      "dobro slediš razlagam in pogovorom",
+      "hitro najdeš luknje v znanju, ko snov poveš na glas",
+      "uporabljaš ritem, primerjave in pripoved za pomnjenje",
     ],
     tips: [
-      'Snov glasno povzemaj ali jo razlagaj sošolcu',
-      'Posnimi lastne razlage in jih poslušaj',
-      'Poslušaj podcaste in avdio gradivo',
-      'Učiš se z rimami ali ritmičnimi ponavljanji',
+      "po vsakem poglavju naredi 60-sekundno glasno obnovo",
+      "uči se z vprašanji in odgovori, tudi če si sam/a",
+      "težje definicije razloži kot kratek pogovor ali zgodbo",
     ],
-    color: '#10B981',
+    color: "#059669",
+    background: "#ecfdf5",
   },
   kinesthetic: {
-    type: 'kinesthetic',
-    emoji: '🤲',
-    label: 'Kinestetični učenec',
+    type: "kinesthetic",
+    label: "Kinestetični profil",
+    shortLabel: "kinestetični",
     description:
-      'Najlažje se učiš z izkušnjo — z delovanjem, preizkušanjem in praktičnim delom. Abstrakcije ti postanejo jasne šele, ko jih preizkusiš v praksi.',
+      "Snov ti postane jasna, ko jo povežeš s primerom, vajo, poskusom ali resnično uporabo.",
     strengths: [
-      'Hitro usvoji praktične spretnosti',
-      'Učinkovit/a pri laboratorijskem in projektnem delu',
-      'Dobro si zapomnijo postopke, ki si jih preizkusil/a',
+      "hitro napreduješ skozi konkretne primere",
+      "dobro razumeš postopke, ko jih sam/a izvedeš",
+      "abstraktne ideje lažje usvojiš prek uporabe",
     ],
     tips: [
-      'Rešuj čim več vaj in primerov',
-      'Deli snov na majhne korake in vsak preizkusi',
-      'Med učenjem vstani in se premakni',
-      'Aplikuj snov na resnične situacije',
+      "za vsak nov pojem reši vsaj en primer takoj po razlagi",
+      "učenje razdeli na kratke cikle: razlaga, primer, vaja, preverjanje",
+      "poveži teorijo z resnično situacijo ali projektom",
     ],
-    color: '#F59E0B',
+    color: "#d97706",
+    background: "#fffbeb",
   },
 };
