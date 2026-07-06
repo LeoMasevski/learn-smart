@@ -65,14 +65,16 @@ create index if not exists idx_subject_quizzes_subject_created_by
 create index if not exists idx_subject_quizzes_subject_status
   on public.subject_quizzes(subject_id, status);
 
-create or replace function public.current_user_role()
-returns public.learnsmart_user_role
+drop function if exists public.current_user_role() cascade;
+
+create function public.current_user_role()
+returns text
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select role
+  select role::text
   from public.profiles
   where id = auth.uid()
 $$;
@@ -171,8 +173,6 @@ with check (
   and public.current_user_role() = 'PROFESSOR'
 );
 
-notify pgrst, 'reload schema';
-
 drop policy if exists "subject quizzes creator write" on public.subject_quizzes;
 drop policy if exists "subject quizzes creator and subject owner write" on public.subject_quizzes;
 create policy "subject quizzes creator and subject owner write"
@@ -198,3 +198,5 @@ with check (
   )
   and public.current_user_role() = 'PROFESSOR'
 );
+
+notify pgrst, 'reload schema';
