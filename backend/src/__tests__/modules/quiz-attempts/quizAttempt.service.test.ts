@@ -17,15 +17,31 @@ const ATTEMPT_ID = "attempt-1";
 
 describe("startAttempt", () => {
   it("abandons existing in_progress attempt and creates a new one", async () => {
-    const builder = makeBuilder({ data: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, student_id: STUDENT_ID, status: "in_progress" }, error: null });
-    mockFrom.mockReturnValue(builder);
+    const completedBuilder = makeBuilder({ data: null, error: null });
+    const abandonedBuilder = makeBuilder({ data: null, error: null });
+    const createdBuilder = makeBuilder({ data: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, student_id: STUDENT_ID, status: "in_progress" }, error: null });
+    mockFrom
+      .mockReturnValueOnce(completedBuilder)
+      .mockReturnValueOnce(abandonedBuilder)
+      .mockReturnValueOnce(createdBuilder);
 
     const { data, error } = await startAttempt(QUIZ_ID, STUDENT_ID);
 
-    expect(builder.update).toHaveBeenCalledWith({ status: "abandoned" });
-    expect(builder.insert).toHaveBeenCalledWith(expect.objectContaining({ quiz_id: QUIZ_ID, student_id: STUDENT_ID }));
+    expect(abandonedBuilder.update).toHaveBeenCalledWith({ status: "abandoned" });
+    expect(createdBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ quiz_id: QUIZ_ID, student_id: STUDENT_ID }));
     expect(data?.quiz_id).toBe(QUIZ_ID);
     expect(error).toBeNull();
+  });
+
+  it("does not start a new attempt after the quiz is completed", async () => {
+    mockFrom.mockReturnValueOnce(
+      makeBuilder({ data: { id: "completed-1" }, error: null })
+    );
+
+    const { data, error } = await startAttempt(QUIZ_ID, STUDENT_ID);
+
+    expect(data).toBeNull();
+    expect(error?.message).toContain("Quiz already completed");
   });
 });
 
@@ -74,7 +90,7 @@ describe("submitAttempt", () => {
   it("returns error when question count mismatches (invalid question submitted)", async () => {
     setupMocks({
       attemptData: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, status: "in_progress" },
-      questionsData: [{ id: "q-1", correct_answer: "Res" }], // only 1 but 2 answers submitted
+      questionsData: [{ id: "q-1", correct_answer: "Res", options: ["Res", "Ni res"] }],
     });
     const { data, error } = await submitAttempt(ATTEMPT_ID, STUDENT_ID, answers, 60);
     expect(data).toBeNull();
@@ -93,8 +109,8 @@ describe("submitAttempt", () => {
     setupMocks({
       attemptData: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, status: "in_progress" },
       questionsData: [
-        { id: "q-1", correct_answer: "Res" },
-        { id: "q-2", correct_answer: "Option B" },
+        { id: "q-1", correct_answer: "Res", options: ["Res", "Ni res"] },
+        { id: "q-2", correct_answer: "Option B", options: ["Option A", "Option B", "Option C", "Option D"] },
       ],
       completedData: completedAttempt,
     });
@@ -116,8 +132,8 @@ describe("submitAttempt", () => {
     setupMocks({
       attemptData: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, status: "in_progress" },
       questionsData: [
-        { id: "q-1", correct_answer: "Res" },       // correct
-        { id: "q-2", correct_answer: "Option A" },  // incorrect (student answered B)
+        { id: "q-1", correct_answer: "Res", options: ["Res", "Ni res"] },       // correct
+        { id: "q-2", correct_answer: "Option A", options: ["Option A", "Option B", "Option C", "Option D"] },  // incorrect (student answered B)
       ],
       completedData: completedAttempt,
     });
@@ -135,7 +151,7 @@ describe("submitAttempt", () => {
     const completedAttempt = { id: ATTEMPT_ID, status: "completed", score: 100, correct_count: 1, total_count: 1, quiz_attempt_answers: [] };
     setupMocks({
       attemptData: { id: ATTEMPT_ID, quiz_id: QUIZ_ID, status: "in_progress" },
-      questionsData: [{ id: "q-1", correct_answer: "Res" }],
+      questionsData: [{ id: "q-1", correct_answer: "Res", options: ["Res", "Ni res"] }],
       completedData: completedAttempt,
     });
 

@@ -6,6 +6,7 @@ type RateLimitOptions = {
   max: number;
   message?: string;
   keyPrefix?: string;
+  keyGenerator?: (req: Request) => string;
 };
 
 type RateLimitRecord = {
@@ -40,6 +41,7 @@ export function rateLimit({
   max,
   message = "Too many requests, please try again later",
   keyPrefix = "global",
+  keyGenerator,
 }: RateLimitOptions) {
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
@@ -51,7 +53,13 @@ export function rateLimit({
       }
     }
 
-    const key = `${keyPrefix}:${req.ip || req.socket.remoteAddress || "unknown"}`;
+    const authenticatedUserId = (req as any).user?.id;
+    const identity =
+      keyGenerator?.(req) ||
+      (typeof authenticatedUserId === "string" && authenticatedUserId
+        ? `user:${authenticatedUserId}`
+        : `ip:${req.ip || req.socket.remoteAddress || "unknown"}`);
+    const key = `${keyPrefix}:${identity}`;
     const bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= now) {

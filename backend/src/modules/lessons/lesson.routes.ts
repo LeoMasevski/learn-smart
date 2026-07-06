@@ -20,7 +20,7 @@ import { rateLimit } from "../../middleware/security.middleware";
 const router = Router();
 const aiGenerationRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 30,
+  max: 10,
   keyPrefix: "lesson-ai",
 });
 

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   getQuizzesBySubjectId,
+  getQuizzesBySubjectIdForProfessor,
   getQuizzesBySubjectIdForStudent,
   getQuizById,
   getQuizByIdForStudent,
@@ -16,11 +17,22 @@ import {
   deleteQuiz,
   type QuestionType,
 } from "./subjectQuiz.service";
-import { getLessonById } from "../lessons/lesson.service";
+import {
+  getLessonById,
+  getLessonsByIdsForProfessor,
+} from "../lessons/lesson.service";
 import { generateSubjectQuiz } from "../ai/ai.service";
 import { getUserRole } from "../../middleware/role.middleware";
 import { isUserEnrolledInSubject } from "../user-subjects/userSubject.service";
 import { cleanString, isUuid } from "../../utils/validation";
+
+function canProfessorManageQuiz(userId: string, quiz: any) {
+  return quiz?.created_by === userId;
+}
+
+function forbiddenOwnQuizMessage() {
+  return "You can only manage quizzes you created";
+}
 
 export async function handleGetQuizzesBySubject(req: Request, res: Response) {
   const user = (req as any).user;
@@ -43,7 +55,7 @@ export async function handleGetQuizzesBySubject(req: Request, res: Response) {
   const { data, error } =
     role === "STUDENT"
       ? await getQuizzesBySubjectIdForStudent(subjectId)
-      : await getQuizzesBySubjectId(subjectId);
+      : await getQuizzesBySubjectIdForProfessor(subjectId, user.id);
 
   if (error) return res.status(500).json({ message: "Failed to fetch quizzes" });
   res.json(data);
@@ -66,6 +78,10 @@ export async function handleGetQuizById(req: Request, res: Response) {
       : await getQuizById(quizId);
 
   if (error || !data) return res.status(404).json({ message: "Quiz not found" });
+
+  if (role === "PROFESSOR" && !canProfessorManageQuiz(user.id, data)) {
+    return res.status(403).json({ message: "You can only access quizzes you created" });
+  }
 
   if (role === "STUDENT") {
     const { isEnrolled } = await isUserEnrolledInSubject(user.id, data.subject_id);
@@ -96,8 +112,16 @@ export async function handleCreateQuiz(req: Request, res: Response) {
     new Set(lessonIds.filter((lessonId: unknown) => isUuid(lessonId)))
   ) as string[];
 
-  if (safeLessonIds.length === 0 || safeLessonIds.length > 50) {
+  if (safeLessonIds.length === 0 || safeLessonIds.length > 10) {
     return res.status(400).json({ message: "Invalid lessonIds" });
+  }
+
+  const { data: ownedLessons, error: lessonsError } =
+    await getLessonsByIdsForProfessor(safeLessonIds, subjectId, user.id);
+  if (lessonsError || !ownedLessons || ownedLessons.length !== safeLessonIds.length) {
+    return res.status(403).json({
+      message: "Quiz can only use lessons you created in this subject",
+    });
   }
 
   const validTypes: QuestionType[] = ["multiple_choice", "true_false", "mixed"];
@@ -105,7 +129,7 @@ export async function handleCreateQuiz(req: Request, res: Response) {
     return res.status(400).json({ message: "Invalid question type" });
   }
 
-  const count = Math.min(Math.max(Number(questionCount) || 10, 3), 50);
+  const count = Math.min(Math.max(Number(questionCount) || 10, 3), 30);
   const timeLimit = Math.min(Math.max(Number(timeLimitMinutes) || 15, 5), 180);
 
   const { data: quiz, error: quizError } = await createQuiz(
@@ -132,6 +156,7 @@ export async function handleCreateQuiz(req: Request, res: Response) {
 
 export async function handleGenerateQuizQuestions(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
+  const user = (req as any).user;
 
   if (!isUuid(quizId)) {
     return res.status(400).json({ message: "Invalid quiz id" });
@@ -139,6 +164,10 @@ export async function handleGenerateQuizQuestions(req: Request, res: Response) {
 
   const { data: quiz, error: quizError } = await getQuizById(quizId);
   if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+
+  if (!canProfessorManageQuiz(user.id, quiz)) {
+    return res.status(403).json({ message: forbiddenOwnQuizMessage() });
+  }
 
   if (quiz.status === "generating") {
     return res.status(409).json({ message: "Quiz is already being generated" });
@@ -205,11 +234,15 @@ function parseQuestionPayload(body: any) {
     if (!Array.isArray(body.options)) {
       return { error: "options array is required for multiple_choice questions" };
     }
-    const cleanedOptions: string[] = body.options
-      .map((o: unknown) => cleanString(o, 500))
-      .filter((o: string) => o.length > 0);
-    if (cleanedOptions.length < 2) {
-      return { error: "multiple_choice questions require at least 2 options" };
+    const cleanedOptions: string[] = Array.from(
+      new Set(
+        body.options
+          .map((o: unknown) => cleanString(o, 500))
+          .filter((o: string) => o.length > 0)
+      )
+    );
+    if (cleanedOptions.length < 2 || cleanedOptions.length > 6) {
+      return { error: "multiple_choice questions require 2-6 unique options" };
     }
     if (!cleanedOptions.includes(correctAnswer)) {
       return { error: "correct_answer must match one of the options" };
@@ -230,10 +263,14 @@ function parseQuestionPayload(body: any) {
 
 export async function handleAddQuizQuestion(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
+  const user = (req as any).user;
   if (!isUuid(quizId)) return res.status(400).json({ message: "Invalid quiz id" });
 
   const { data: quiz, error: quizError } = await getQuizById(quizId);
   if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+  if (!canProfessorManageQuiz(user.id, quiz)) {
+    return res.status(403).json({ message: forbiddenOwnQuizMessage() });
+  }
 
   const { data: payload, error: validationError } = parseQuestionPayload(req.body);
   if (validationError || !payload) {
@@ -258,8 +295,15 @@ export async function handleAddQuizQuestion(req: Request, res: Response) {
 export async function handleUpdateQuizQuestion(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
   const questionId = req.params.questionId as string;
+  const user = (req as any).user;
   if (!isUuid(quizId) || !isUuid(questionId)) {
     return res.status(400).json({ message: "Invalid id" });
+  }
+
+  const { data: quiz, error: quizError } = await getQuizById(quizId);
+  if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+  if (!canProfessorManageQuiz(user.id, quiz)) {
+    return res.status(403).json({ message: forbiddenOwnQuizMessage() });
   }
 
   const { data: existing, error: existingError } = await getQuizQuestionById(questionId);
@@ -283,8 +327,15 @@ export async function handleUpdateQuizQuestion(req: Request, res: Response) {
 export async function handleDeleteQuizQuestion(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
   const questionId = req.params.questionId as string;
+  const user = (req as any).user;
   if (!isUuid(quizId) || !isUuid(questionId)) {
     return res.status(400).json({ message: "Invalid id" });
+  }
+
+  const { data: quiz, error: quizError } = await getQuizById(quizId);
+  if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+  if (!canProfessorManageQuiz(user.id, quiz)) {
+    return res.status(403).json({ message: forbiddenOwnQuizMessage() });
   }
 
   const { data: existing, error: existingError } = await getQuizQuestionById(questionId);
@@ -292,7 +343,6 @@ export async function handleDeleteQuizQuestion(req: Request, res: Response) {
     return res.status(404).json({ message: "Question not found" });
   }
 
-  const { data: quiz } = await getQuizById(quizId);
   const remaining = (quiz?.quiz_questions ?? []).length - 1;
   if (remaining < 1) {
     return res.status(400).json({ message: "Quiz must have at least one question" });
@@ -310,9 +360,16 @@ export async function handleDeleteQuizQuestion(req: Request, res: Response) {
 
 export async function handleDeleteQuiz(req: Request, res: Response) {
   const quizId = req.params.quizId as string;
+  const user = (req as any).user;
 
   if (!isUuid(quizId)) {
     return res.status(400).json({ message: "Invalid quiz id" });
+  }
+
+  const { data: quiz, error: quizError } = await getQuizById(quizId);
+  if (quizError || !quiz) return res.status(404).json({ message: "Quiz not found" });
+  if (!canProfessorManageQuiz(user.id, quiz)) {
+    return res.status(403).json({ message: forbiddenOwnQuizMessage() });
   }
 
   const { data, error } = await deleteQuiz(quizId);

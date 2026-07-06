@@ -43,4 +43,5 @@ export const env = {
   corsAllowedOrigins,
   frontendOrigin: process.env.FRONTEND_ORIGIN || defaultFrontendOrigin,
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || "1mb",
+  professorRegistrationCode: process.env.PROFESSOR_REGISTRATION_CODE?.trim() || "",
 };

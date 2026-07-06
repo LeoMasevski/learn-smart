@@ -55,12 +55,13 @@ export async function handleGetSubjectStudents(req: Request, res: Response) {
 
 export async function handleGetSubjectStudentProgress(req: Request, res: Response) {
   const subjectId = (req.params.id ?? req.params.subjectId) as string;
+  const user = (req as any).user;
 
   if (!isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
   }
 
-  const { data, error } = await getSubjectStudentProgress(subjectId);
+  const { data, error } = await getSubjectStudentProgress(subjectId, user.id);
   if (error || !data) return res.status(500).json({ message: "Failed to fetch student progress" });
   res.json(data);
 }

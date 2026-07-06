@@ -28,12 +28,15 @@ function QrCodePreview({ qrCode }: { qrCode: string }) {
     );
   }
 
-  if (qrCode.trim().startsWith("<svg")) {
+  const trimmedQrCode = qrCode.trim();
+  if (trimmedQrCode.startsWith("<svg")) {
     return (
-      <div
+      <img
+        src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+          trimmedQrCode
+        )}`}
+        alt="QR koda za 2FA"
         className="mx-auto h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
-        aria-label="QR koda za 2FA"
-        dangerouslySetInnerHTML={{ __html: qrCode }}
       />
     );
   }

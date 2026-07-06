@@ -26,6 +26,33 @@ export async function getQuizzesBySubjectId(subjectId: string) {
     .order("created_at", { ascending: false });
 }
 
+export async function getQuizzesBySubjectIdForProfessor(
+  subjectId: string,
+  createdBy: string
+) {
+  return await supabaseAdmin
+    .from("subject_quizzes")
+    .select(`
+      *,
+      quiz_lessons (
+        lesson_id,
+        lessons ( id, title )
+      ),
+      quiz_questions (
+        id,
+        question,
+        options,
+        correct_answer,
+        question_type,
+        explanation,
+        order_index
+      )
+    `)
+    .eq("subject_id", subjectId)
+    .eq("created_by", createdBy)
+    .order("created_at", { ascending: false });
+}
+
 export async function getQuizzesBySubjectIdForStudent(subjectId: string) {
   return await supabaseAdmin
     .from("subject_quizzes")

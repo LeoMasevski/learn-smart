@@ -46,6 +46,7 @@ interface RegisterPayload {
   password: string;
   fullName: string;
   role: UserRole;
+  professorCode?: string;
 }
 
 interface AuthContextType extends AuthState {
@@ -59,10 +60,14 @@ interface AuthContextType extends AuthState {
     factorId: string,
     code: string
   ) => Promise<{ error?: string }>;
-  loginWithGoogle: (role: UserRole) => Promise<{ error?: string }>;
+  loginWithGoogle: (
+    role: UserRole,
+    professorCode?: string
+  ) => Promise<{ error?: string }>;
   completeOAuthLogin: (
     accessToken: string,
-    role: UserRole
+    role: UserRole,
+    professorCode?: string
   ) => Promise<{ error?: string; mfa?: MfaChallenge }>;
   applySessionToken: (token: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -183,10 +188,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function loginWithGoogle(role: UserRole) {
+  async function loginWithGoogle(role: UserRole, professorCode?: string) {
     try {
       const { data } = await api.get("/auth/google/url", {
-        params: { role },
+        params: {
+          role,
+          ...(role === "PROFESSOR" && professorCode
+            ? { professorCode: professorCode.trim() }
+            : {}),
+        },
       });
 
       if (!data.url) return { error: "Google prijava ni na voljo" };
@@ -197,11 +207,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function completeOAuthLogin(accessToken: string, role: UserRole) {
+  async function completeOAuthLogin(
+    accessToken: string,
+    role: UserRole,
+    professorCode?: string
+  ) {
     try {
       const { data } = await api.post(
         "/auth/oauth/complete",
-        { role },
+        {
+          role,
+          ...(role === "PROFESSOR" && professorCode
+            ? { professorCode: professorCode.trim() }
+            : {}),
+        },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -220,7 +239,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function register({ email, password, fullName, role }: RegisterPayload) {
+  async function register({
+    email,
+    password,
+    fullName,
+    role,
+    professorCode,
+  }: RegisterPayload) {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
@@ -229,6 +254,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         fullName: fullName.trim(),
         role,
+        ...(role === "PROFESSOR" && professorCode
+          ? { professorCode: professorCode.trim() }
+          : {}),
       });
       return {};
     } catch (error) {

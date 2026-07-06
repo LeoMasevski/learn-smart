@@ -16,7 +16,7 @@ import {
 const router = Router();
 const aiGenerationRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 30,
+  max: 20,
   keyPrefix: "quiz-ai",
 });
 
