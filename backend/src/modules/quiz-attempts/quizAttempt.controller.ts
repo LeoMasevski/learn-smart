@@ -27,7 +27,12 @@ export async function handleStartAttempt(req: Request, res: Response) {
   }
 
   const { data, error } = await startAttempt(quizId, user.id);
-  if (error || !data) return res.status(500).json({ message: "Failed to start attempt" });
+  if (error || !data) {
+    const status = error?.message === "Quiz already completed" ? 409 : 500;
+    return res.status(status).json({
+      message: error?.message ?? "Failed to start attempt",
+    });
+  }
 
   // Return student-safe quiz — no correct_answer, no explanation
   const { data: safeQuiz } = await getQuizByIdForStudent(quizId);
@@ -110,10 +115,22 @@ export async function handleGetMyAttemptReview(req: Request, res: Response) {
 }
 
 export async function handleGetQuizResults(req: Request, res: Response) {
+  const user = (req as any).user;
   const quizId = req.params.quizId as string;
 
   if (!isUuid(quizId)) {
     return res.status(400).json({ message: "Invalid quiz id" });
+  }
+
+  const { data: quiz, error: quizError } = await getQuizById(quizId);
+  if (quizError || !quiz) {
+    return res.status(404).json({ message: "Quiz not found" });
+  }
+
+  if (quiz.created_by !== user.id) {
+    return res.status(403).json({
+      message: "You can only view results for quizzes you created",
+    });
   }
 
   const { data, error } = await getQuizResultsForProfessor(quizId);

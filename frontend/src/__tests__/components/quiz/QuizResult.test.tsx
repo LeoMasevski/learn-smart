@@ -1,23 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { QuizResult } from '../../../components/quiz/QuizResult';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { QuizResult } from "../../../components/quiz/QuizResult";
+import type { LearningTypeCalculation } from "../../../data/quizQuestions";
 
-const mockResult = {
-  type: 'visual' as const,
+const mockResult: LearningTypeCalculation = {
+  type: "visual",
   scores: { visual: 5, auditory: 2, kinesthetic: 1 },
   percentage: { visual: 63, auditory: 25, kinesthetic: 12 },
+  dominantTypes: ["visual"],
+  isMultimodal: false,
+  profileLabel: "Vizualni profil",
+  profileDescription: "Najhitreje napreduješ z diagrami in urejenimi pregledi.",
+  totalSelections: 8,
 };
 
 describe("QuizResult", () => {
   const onRetake = vi.fn();
   const onContinue = vi.fn();
 
-  it("displays the dominant learning type label in the heading", () => {
+  it("displays the dominant learning profile label in the heading", () => {
     render(<QuizResult result={mockResult} onRetake={onRetake} />);
-    expect(screen.getByRole('heading', { name: /vizualni/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /vizualni/i })).toBeInTheDocument();
   });
 
-  it("shows percentage bars for all three types", () => {
+  it("shows percentage bars for all three profiles", () => {
     render(<QuizResult result={mockResult} onRetake={onRetake} />);
     expect(screen.getByText("63%")).toBeInTheDocument();
     expect(screen.getByText("25%")).toBeInTheDocument();
@@ -35,7 +41,7 @@ describe("QuizResult", () => {
     const btn = screen.getByText(/Nadaljuj/i);
     expect(btn).toBeInTheDocument();
     fireEvent.click(btn);
-    expect(onContinue).toHaveBeenCalledWith('visual');
+    expect(onContinue).toHaveBeenCalledWith("visual");
   });
 
   it("does not render Nadaljuj button when onContinue is not provided", () => {
@@ -43,9 +49,9 @@ describe("QuizResult", () => {
     expect(screen.queryByText(/Nadaljuj/i)).not.toBeInTheDocument();
   });
 
-  it("shows strengths and tips from the result data", () => {
+  it("shows strengths and learning strategies from the result data", () => {
     render(<QuizResult result={mockResult} onRetake={onRetake} />);
-    expect(screen.getByText(/Tvoje prednosti/i)).toBeInTheDocument();
-    expect(screen.getByText(/Nasveti za učenje/i)).toBeInTheDocument();
+    expect(screen.getByText(/Močne strani/i)).toBeInTheDocument();
+    expect(screen.getByText(/Strategije za učenje/i)).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { BookOpen, FileText, Sparkles } from "lucide-react";
 import { api, getApiErrorMessage } from "../../api/api";
 import type { Lesson, Subject } from "../../types/professor";
 
@@ -33,9 +34,9 @@ const MAX_PDF_MB = 10;
 const PDF_MAGIC = "%PDF-";
 
 const VARIANT_META = {
-  VISUAL: { emoji: "👁️", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
-  AUDITORY: { emoji: "👂", label: "Slušni", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-200" },
-  KINESTHETIC: { emoji: "🤸", label: "Kinestetični", bg: "bg-emerald-50", color: "text-emerald-700", border: "border-emerald-200" },
+  VISUAL: { emoji: "VIS", label: "Vizualni", bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-200" },
+  AUDITORY: { emoji: "AUD", label: "Slušni", bg: "bg-sky-50", color: "text-sky-700", border: "border-sky-200" },
+  KINESTHETIC: { emoji: "KIN", label: "Kinestetični", bg: "bg-emerald-50", color: "text-emerald-700", border: "border-emerald-200" },
 } as const;
 
 const LessonFormModal = ({
@@ -241,7 +242,7 @@ const LessonFormModal = ({
           )}
 
           {successInfo.generationQueued ? (
-            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 px-4 py-5">
+            <div className="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-5">
               <p className="text-violet-700 font-bold text-lg mb-2">
                 Generiranje poteka v ozadju
               </p>
@@ -256,9 +257,10 @@ const LessonFormModal = ({
               <p className="text-amber-600 text-sm">{successInfo.aiError}</p>
             </div>
           ) : (
-            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 px-4 py-5">
-              <p className="text-violet-700 font-bold text-lg mb-3">
-                {successInfo.variantsGenerated} variante generirane ✨
+            <div className="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-5">
+              <p className="text-violet-700 font-bold text-lg mb-3 inline-flex items-center justify-center gap-2">
+                {successInfo.variantsGenerated} variante generirane
+                <Sparkles className="w-4 h-4" strokeWidth={2.25} />
               </p>
               <div className="flex justify-center gap-2 flex-wrap">
                 {(["VISUAL", "AUDITORY", "KINESTHETIC"] as const).map((type) => {
@@ -344,7 +346,14 @@ const LessonFormModal = ({
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
-              {type === "Prezentacija" ? "📚 Prezentacija" : "📄 Dodatno gradivo"}
+              <span className="inline-flex items-center justify-center gap-2">
+                {type === "Prezentacija" ? (
+                  <BookOpen className="w-4 h-4" strokeWidth={2.25} />
+                ) : (
+                  <FileText className="w-4 h-4" strokeWidth={2.25} />
+                )}
+                {type}
+              </span>
             </button>
           ))}
         </div>
@@ -567,7 +576,7 @@ const LessonFormModal = ({
             ) : (
               <>
                 Ustvari in generiraj
-                <span className="text-violet-200">✨</span>
+                <Sparkles className="w-4 h-4 text-violet-100" strokeWidth={2.25} />
               </>
             )}
           </button>

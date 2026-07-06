@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   quizQuestions,
   calculateLearningType,
+  QuizAnswers,
   LearningType,
 } from '../data/quizQuestions';
 
@@ -10,7 +11,7 @@ export type QuizPhase = 'intro' | 'questions' | 'result';
 export interface QuizState {
   phase: QuizPhase;
   currentQuestion: number;
-  answers: Record<number, LearningType>;
+  answers: QuizAnswers;
   result: ReturnType<typeof calculateLearningType> | null;
 }
 
@@ -26,9 +27,9 @@ export function useQuiz() {
     setState({ phase: 'questions', currentQuestion: 0, answers: {}, result: null });
   }, []);
 
-  const answerQuestion = useCallback((questionId: number, type: LearningType) => {
+  const answerQuestion = useCallback((questionId: number, types: LearningType[]) => {
     setState((prev) => {
-      const newAnswers = { ...prev.answers, [questionId]: type };
+      const newAnswers = { ...prev.answers, [questionId]: types };
       const isLast = prev.currentQuestion === quizQuestions.length - 1;
 
       if (isLast) {
@@ -43,9 +44,7 @@ export function useQuiz() {
   const goBack = useCallback(() => {
     setState((prev) => {
       if (prev.currentQuestion === 0) return { ...prev, phase: 'intro' };
-      const newAnswers = { ...prev.answers };
-      delete newAnswers[quizQuestions[prev.currentQuestion - 1].id];
-      return { ...prev, currentQuestion: prev.currentQuestion - 1, answers: newAnswers };
+      return { ...prev, currentQuestion: prev.currentQuestion - 1 };
     });
   }, []);
 

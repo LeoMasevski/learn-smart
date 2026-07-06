@@ -11,6 +11,8 @@ type Props = {
   activePreviewId?: string;
 };
 
+const EXPECTED_VARIANT_COUNT = 3;
+
 const getLessonMeta = (title: string) => {
   if (title.startsWith("[Prezentacija]")) {
     return { label: "Prezentacija", icon: BookOpen, bg: "bg-violet-50", color: "text-violet-700", border: "border-violet-100" };
@@ -62,7 +64,7 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
         const failedCount = lesson.lesson_variants?.filter(
           (variant) => getGenerationStatus(variant)?.status === "failed"
         ).length ?? 0;
-        const hasAllVariants = variantCount >= 3;
+        const hasAllVariants = variantCount >= EXPECTED_VARIANT_COUNT;
         const isQueuedOrGenerating = generatingCount > 0 && !hasAllVariants;
         const isGenerating = generatingVariantsId === lesson.id;
 
@@ -99,7 +101,7 @@ const LessonList = ({ lessons, onEdit, onDelete, onPreview, onGenerateVariants, 
                           : isQueuedOrGenerating
                           ? "Variante se generirajo"
                           : variantCount > 0
-                          ? `${variantCount}/3 variante pripravljene`
+                          ? `${variantCount}/${EXPECTED_VARIANT_COUNT} variante pripravljene`
                           : "Variante manjkajo"}
                       </span>
                     )}

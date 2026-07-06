@@ -15,7 +15,10 @@ export async function getStudentsForSubject(subjectId: string) {
     .order("enrolled_at", { ascending: false });
 }
 
-export async function getSubjectStudentProgress(subjectId: string) {
+export async function getSubjectStudentProgress(
+  subjectId: string,
+  professorId?: string
+) {
   // 1. All enrolled students
   const { data: enrolled, error: eErr } = await supabaseAdmin
     .from("user_subjects")
@@ -25,11 +28,16 @@ export async function getSubjectStudentProgress(subjectId: string) {
   if (eErr || !enrolled) return { data: null, error: eErr };
 
   // 2. All ready quizzes for subject
-  const { data: quizzes } = await supabaseAdmin
+  let quizQuery = supabaseAdmin
     .from("subject_quizzes")
     .select("id")
-    .eq("subject_id", subjectId)
-    .eq("status", "ready");
+    .eq("subject_id", subjectId);
+
+  if (professorId) {
+    quizQuery = quizQuery.eq("created_by", professorId);
+  }
+
+  const { data: quizzes } = await quizQuery.eq("status", "ready");
 
   const quizIds = (quizzes ?? []).map((q: any) => q.id);
   const totalQuizzes = quizIds.length;

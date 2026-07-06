@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { QuizQuestion } from '../../../components/quiz/QuizQuestion';
-import type { QuizQuestion as QuizQuestionType } from '../../../data/quizQuestions';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { QuizQuestion } from "../../../components/quiz/QuizQuestion";
+import type { QuizQuestion as QuizQuestionType } from "../../../data/quizQuestions";
 
 const mockQuestion: QuizQuestionType = {
   id: 1,
-  question: 'Ko se učiš novo snov, ti najbolj pomaga?',
+  question: "Ko se učiš novo snov, kaj ti najbolj pomaga?",
   options: [
-    { id: '1a', text: 'Brati razlago', type: 'visual', points: 1 },
-    { id: '1b', text: 'Poslušati razlago', type: 'auditory', points: 1 },
-    { id: '1c', text: 'Sam preizkusiti', type: 'kinesthetic', points: 1 },
+    { id: "1a", text: "Narisati shemo", type: "visual", points: 1 },
+    { id: "1b", text: "Poslušati razlago", type: "auditory", points: 1 },
+    { id: "1c", text: "Sam preizkusiti", type: "kinesthetic", points: 1 },
   ],
 };
 
@@ -34,6 +34,7 @@ describe("QuizQuestion", () => {
         questionNumber={1}
         totalQuestions={5}
         progress={20}
+        selectedTypes={[]}
         onAnswer={onAnswer}
         onBack={onBack}
         {...props}
@@ -42,12 +43,12 @@ describe("QuizQuestion", () => {
 
   it("renders the question text", () => {
     renderQuestion();
-    expect(screen.getByText("Ko se učiš novo snov, ti najbolj pomaga?")).toBeInTheDocument();
+    expect(screen.getByText("Ko se učiš novo snov, kaj ti najbolj pomaga?")).toBeInTheDocument();
   });
 
   it("renders all answer options", () => {
     renderQuestion();
-    expect(screen.getByText("Brati razlago")).toBeInTheDocument();
+    expect(screen.getByText("Narisati shemo")).toBeInTheDocument();
     expect(screen.getByText("Poslušati razlago")).toBeInTheDocument();
     expect(screen.getByText("Sam preizkusiti")).toBeInTheDocument();
   });
@@ -57,18 +58,30 @@ describe("QuizQuestion", () => {
     expect(screen.getByText("1 / 5")).toBeInTheDocument();
   });
 
-  it("calls onAnswer with the correct learning type after selecting an option", async () => {
+  it("calls onAnswer with all selected learning types when continuing", () => {
     renderQuestion();
-    fireEvent.click(screen.getByText("Brati razlago"));
-    act(() => { vi.advanceTimersByTime(400); });
-    expect(onAnswer).toHaveBeenCalledWith(1, 'visual');
+    fireEvent.click(screen.getByText("Narisati shemo"));
+    fireEvent.click(screen.getByText("Sam preizkusiti"));
+    fireEvent.click(screen.getByText("Nadaljuj"));
+
+    expect(onAnswer).toHaveBeenCalledWith(1, ["visual", "kinesthetic"]);
   });
 
-  it("disables all options after one is selected (no double-selecting)", () => {
+  it("does not continue until at least one option is selected", () => {
     renderQuestion();
-    const options = screen.getAllByRole('button').filter(b => !b.textContent?.includes('Nazaj'));
-    fireEvent.click(options[0]);
-    options.forEach(opt => expect(opt).toBeDisabled());
+    const nextButton = screen.getByText("Nadaljuj").closest("button");
+    expect(nextButton).toBeDisabled();
+  });
+
+  it("allows a selected option to be toggled off", () => {
+    renderQuestion();
+    const option = screen.getByText("Narisati shemo");
+
+    fireEvent.click(option);
+    fireEvent.click(option);
+
+    const nextButton = screen.getByText("Nadaljuj").closest("button");
+    expect(nextButton).toBeDisabled();
   });
 
   it("calls onBack when the Nazaj button is clicked", () => {
@@ -77,17 +90,17 @@ describe("QuizQuestion", () => {
     expect(onBack).toHaveBeenCalled();
   });
 
-  it("resets selection when question prop changes", () => {
+  it("loads previous selections when question props change", () => {
     const { rerender } = renderQuestion();
-    fireEvent.click(screen.getByText("Brati razlago"));
 
     const newQuestion: QuizQuestionType = {
       ...mockQuestion,
       id: 2,
-      question: 'Novo vprašanje',
+      question: "Novo vprašanje",
       options: [
-        { id: '2a', text: 'Opcija A', type: 'visual', points: 1 },
-        { id: '2b', text: 'Opcija B', type: 'auditory', points: 1 },
+        { id: "2a", text: "Opcija A", type: "visual", points: 1 },
+        { id: "2b", text: "Opcija B", type: "auditory", points: 1 },
+        { id: "2c", text: "Opcija C", type: "kinesthetic", points: 1 },
       ],
     };
 
@@ -97,12 +110,16 @@ describe("QuizQuestion", () => {
         questionNumber={2}
         totalQuestions={5}
         progress={40}
+        selectedTypes={["auditory"]}
         onAnswer={onAnswer}
         onBack={onBack}
       />
     );
 
-    const buttons = screen.getAllByRole('button').filter(b => !b.textContent?.includes('Nazaj'));
-    expect(buttons[0]).not.toBeDisabled();
+    act(() => {
+      vi.advanceTimersByTime(40);
+    });
+
+    expect(screen.getByText("Opcija B").closest("button")).toHaveAttribute("aria-pressed", "true");
   });
 });

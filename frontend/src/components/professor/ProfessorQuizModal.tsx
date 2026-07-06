@@ -1,4 +1,22 @@
 import { useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  CheckSquare,
+  Clock3,
+  HelpCircle,
+  Lightbulb,
+  Pencil,
+  Plus,
+  Shuffle,
+  Sparkles,
+  Trash2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { api } from "../../api/api";
 import type { Lesson } from "../../types/professor";
 import type { QuestionType, QuizQuestion, SubjectQuiz } from "../../types/professor";
@@ -12,10 +30,10 @@ type Props = {
 
 type Step = "lessons" | "config" | "generating" | "preview";
 
-const QUESTION_TYPE_OPTIONS: { value: QuestionType; label: string; desc: string; icon: string }[] = [
-  { value: "multiple_choice", label: "Večkratni izbor", desc: "4 možnosti, 1 pravilen odgovor", icon: "☑️" },
-  { value: "true_false", label: "Res / Ni res", desc: "Enostavne izjavne trditve", icon: "✅" },
-  { value: "mixed", label: "Kombinirano", desc: "Mešanica obeh tipov", icon: "🔀" },
+const QUESTION_TYPE_OPTIONS: { value: QuestionType; label: string; desc: string; icon: LucideIcon }[] = [
+  { value: "multiple_choice", label: "Večkratni izbor", desc: "4 možnosti, 1 pravilen odgovor", icon: CheckSquare },
+  { value: "true_false", label: "Res / Ni res", desc: "Enostavne izjavne trditve", icon: CheckCircle2 },
+  { value: "mixed", label: "Kombinirano", desc: "Mešanica obeh tipov", icon: Shuffle },
 ];
 
 type QuestionEditorProps = {
@@ -118,9 +136,7 @@ const QuestionEditor = ({
                 }`}
               >
                 {formCorrectAnswer === opt && opt !== "" && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
                 )}
               </button>
               <input
@@ -360,7 +376,10 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
         <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
           <div>
             <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide">
-              ✨ AI Kviz Generator
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
+                AI Kviz Generator
+              </span>
             </p>
             <h2 className="text-xl font-bold text-slate-900 mt-0.5">
               {step === "lessons" && "Izberi gradiva"}
@@ -372,10 +391,9 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition"
+            aria-label="Zapri generator kviza"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-4 h-4" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -421,7 +439,9 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
               </p>
               {lessons.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
-                  <p className="text-4xl mb-3">📚</p>
+                  <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6" strokeWidth={2.25} />
+                  </div>
                   <p className="font-medium">Predmet nima gradiv</p>
                 </div>
               ) : (
@@ -444,9 +464,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                           }`}
                         >
                           {selected && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
+                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
                           )}
                         </div>
                         <span className={`text-sm font-medium ${selected ? "text-violet-800" : "text-slate-700"}`}>
@@ -514,23 +532,30 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Tip vprašanj</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {QUESTION_TYPE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setQuestionType(opt.value)}
-                      className={`rounded-2xl border p-3 text-left transition ${
-                        questionType === opt.value
-                          ? "border-violet-400 bg-violet-50"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="text-xl mb-1">{opt.icon}</div>
-                      <p className={`text-xs font-semibold ${questionType === opt.value ? "text-violet-800" : "text-slate-700"}`}>
-                        {opt.label}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
-                    </button>
-                  ))}
+                  {QUESTION_TYPE_OPTIONS.map((opt) => {
+                    const OptionIcon = opt.icon;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setQuestionType(opt.value)}
+                        className={`rounded-2xl border p-3 text-left transition ${
+                          questionType === opt.value
+                            ? "border-violet-400 bg-violet-50"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className={`mb-2 w-9 h-9 rounded-xl flex items-center justify-center ${
+                          questionType === opt.value ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500"
+                        }`}>
+                          <OptionIcon className="w-4 h-4" strokeWidth={2.25} />
+                        </div>
+                        <p className={`text-xs font-semibold ${questionType === opt.value ? "text-violet-800" : "text-slate-700"}`}>
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -546,7 +571,9 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
                 <div className="absolute inset-0 rounded-full border-4 border-t-violet-500 animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center text-2xl">✨</div>
+                <div className="absolute inset-0 flex items-center justify-center text-violet-600">
+                  <Sparkles className="w-5 h-5" strokeWidth={2.25} />
+                </div>
               </div>
               <div className="text-center">
                 <p className="font-bold text-slate-900 text-lg">Gemini generira vprašanja</p>
@@ -563,13 +590,16 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
               {/* Quiz meta */}
               <div className="mb-5 flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
-                  ❓ {generatedQuiz.quiz_questions?.length ?? 0} vprašanj
+                  <HelpCircle className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  {generatedQuiz.quiz_questions?.length ?? 0} vprašanj
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                  ⏱ {generatedQuiz.time_limit_minutes} min
+                  <Clock3 className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  {generatedQuiz.time_limit_minutes} min
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  ✅ Generirano
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Generirano
                 </span>
               </div>
 
@@ -627,9 +657,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                             title="Uredi vprašanje"
                             className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-violet-100 hover:text-violet-700 text-slate-500 flex items-center justify-center transition"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                            <Pencil className="w-3.5 h-3.5" strokeWidth={2.25} />
                           </button>
                           <button
                             onClick={() => handleDeleteQuestion(q.id)}
@@ -640,9 +668,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                             {deletingQuestionId === q.id ? (
                               <span className="text-xs">...</span>
                             ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
+                              <Trash2 className="w-3.5 h-3.5" strokeWidth={2.25} />
                             )}
                           </button>
                         </div>
@@ -661,9 +687,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                                   }`}
                                 >
                                   {opt === q.correct_answer && (
-                                    <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
+                                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" strokeWidth={2.5} />
                                   )}
                                   {opt}
                                 </div>
@@ -671,7 +695,10 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                             </div>
                           )}
                           {q.explanation && (
-                            <p className="text-xs text-slate-500 italic">💡 {q.explanation}</p>
+                            <p className="text-xs text-slate-500 italic inline-flex items-start gap-1.5">
+                              <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={2.25} />
+                              {q.explanation}
+                            </p>
                           )}
                         </div>
                       )}
@@ -705,9 +732,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                   onClick={startAddQuestion}
                   className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-200 hover:border-violet-300 hover:bg-violet-50 px-4 py-3 text-sm font-semibold text-slate-500 hover:text-violet-700 transition flex items-center justify-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
+                  <Plus className="w-4 h-4" strokeWidth={2.5} />
                   Dodaj vprašanje
                 </button>
               )}
@@ -725,22 +750,25 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
               <button
                 onClick={() => setStep("config")}
                 disabled={selectedLessonIds.size === 0}
-                className="rounded-2xl bg-violet-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="rounded-2xl bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
-                Naprej →
+                Naprej
+                <ArrowRight className="w-4 h-4" strokeWidth={2.25} />
               </button>
             </>
           )}
           {step === "config" && (
             <>
-              <button onClick={() => setStep("lessons")} className="rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
-                ← Nazaj
+              <button onClick={() => setStep("lessons")} className="rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" strokeWidth={2.25} />
+                Nazaj
               </button>
               <button
                 onClick={handleConfigNext}
-                className="rounded-2xl bg-violet-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-600 transition flex items-center gap-2"
+                className="rounded-2xl bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition flex items-center gap-2"
               >
-                <span>✨</span> Generiraj s Gemini
+                <Sparkles className="w-4 h-4" strokeWidth={2.25} />
+                Generiraj s Gemini
               </button>
             </>
           )}
@@ -755,9 +783,7 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                 title={editingQuestionId !== null ? "Najprej zaključi urejanje vprašanja" : undefined}
                 className="rounded-2xl bg-emerald-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <Check className="w-4 h-4" strokeWidth={2.5} />
                 Shrani kviz
               </button>
             </>

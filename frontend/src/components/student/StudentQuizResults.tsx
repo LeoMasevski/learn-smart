@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/api";
 import type { QuizAttempt, QuizAttemptAnswer, SubjectQuizForStudent } from "../../types/student";
+import { Award, BookOpen, Check, Lightbulb, Target, TrendingUp, X } from "lucide-react";
 
 type Props = {
   quizId: string;
@@ -67,10 +68,11 @@ const StudentQuizResults = ({ quizId, quizTitle, onClose }: Props) => {
   );
 
   const feedback =
-    score >= 90 ? { emoji: "🏆", label: "Odlično!", color: "text-emerald-600" } :
-    score >= 70 ? { emoji: "🎯", label: "Dobro!", color: "text-sky-600" } :
-    score >= 50 ? { emoji: "📚", label: "Solidno, še malo!", color: "text-amber-600" } :
-                 { emoji: "💪", label: "Poskusi znova!", color: "text-rose-600" };
+    score >= 90 ? { icon: Award, label: "Odlično!", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" } :
+    score >= 70 ? { icon: Target, label: "Dobro!", color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100" } :
+    score >= 50 ? { icon: BookOpen, label: "Solidno, še malo!", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" } :
+                 { icon: TrendingUp, label: "Poskusi znova!", color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" };
+  const FeedbackIcon = feedback.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -109,7 +111,9 @@ const StudentQuizResults = ({ quizId, quizTitle, onClose }: Props) => {
             <>
               {/* Score card */}
               <div className="flex flex-col items-center gap-4 mb-6">
-                <p className="text-4xl">{feedback.emoji}</p>
+                <span className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${feedback.bg} ${feedback.border}`}>
+                  <FeedbackIcon className={`h-6 w-6 ${feedback.color}`} strokeWidth={2.1} />
+                </span>
                 <h3 className={`text-xl font-extrabold ${feedback.color}`}>{feedback.label}</h3>
                 <ScoreRing score={score} />
                 <div className="flex gap-6 text-center">
@@ -147,7 +151,7 @@ const StudentQuizResults = ({ quizId, quizTitle, onClose }: Props) => {
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
                           isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
                         }`}>
-                          {isCorrect ? "✓" : "✗"}
+                          {isCorrect ? <Check className="h-3.5 w-3.5" strokeWidth={2.4} /> : <X className="h-3.5 w-3.5" strokeWidth={2.4} />}
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-800 mb-2">{idx + 1}. {q.question}</p>
@@ -164,7 +168,7 @@ const StudentQuizResults = ({ quizId, quizTitle, onClose }: Props) => {
                                       ? "bg-rose-200 text-rose-700 line-through"
                                       : "bg-white border border-slate-200 text-slate-500"
                                   }`}>
-                                    {isAnswer && "✓ "}{opt}
+                                    {isAnswer && <Check className="mr-1 inline h-3 w-3" strokeWidth={2.4} />}{opt}
                                   </span>
                                 );
                               })}
@@ -174,7 +178,7 @@ const StudentQuizResults = ({ quizId, quizTitle, onClose }: Props) => {
                             <p className="text-xs text-slate-400 italic mb-1">Brez odgovora</p>
                           )}
                           {q.explanation && (
-                            <p className="text-xs text-slate-500 italic">💡 {q.explanation}</p>
+                            <p className="flex items-start gap-1.5 text-xs text-slate-500 italic"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} /> {q.explanation}</p>
                           )}
                         </div>
                       </div>

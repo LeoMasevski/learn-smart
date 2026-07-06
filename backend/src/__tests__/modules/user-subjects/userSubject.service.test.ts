@@ -105,12 +105,12 @@ describe("getSubjectStudentProgress", () => {
     expect(error).toBeNull();
     expect(data).toHaveLength(2);
 
-    const ana = data!.find((s: any) => s.id === "s-1");
+    const ana = data!.find((s: any) => s.id === "s-1")!;
     expect(ana.quizzes_attempted).toBe(2);
     expect(ana.avg_score).toBe(70); // (80 + 60) / 2
     expect(ana.best_score).toBe(80);
 
-    const bor = data!.find((s: any) => s.id === "s-2");
+    const bor = data!.find((s: any) => s.id === "s-2")!;
     expect(bor.quizzes_attempted).toBe(1);
     expect(bor.avg_score).toBe(100);
     expect(bor.best_score).toBe(100);
@@ -129,8 +129,8 @@ describe("getSubjectStudentProgress", () => {
     });
 
     const { data } = await getSubjectStudentProgress(SUBJECT_ID);
-    expect(data![0].avg_score).toBeNull();
-    expect(data![0].best_score).toBeNull();
-    expect(data![0].quizzes_attempted).toBe(0);
+    expect(data![0]!.avg_score).toBeNull();
+    expect(data![0]!.best_score).toBeNull();
+    expect(data![0]!.quizzes_attempted).toBe(0);
   });
 });

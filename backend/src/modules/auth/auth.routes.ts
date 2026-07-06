@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request } from "express";
+import { timingSafeEqual } from "crypto";
 import {
   createSupabaseAuthClient,
   supabaseAdmin,
@@ -66,6 +67,35 @@ function getSessionFromMfaResponse(data: any) {
   return data?.session || data;
 }
 
+function isProfessorRegistrationCodeValid(value: unknown) {
+  const configuredCode = env.professorRegistrationCode;
+
+  if (!configuredCode && env.nodeEnv !== "production") {
+    return true;
+  }
+
+  if (!configuredCode || typeof value !== "string") {
+    return false;
+  }
+
+  const provided = Buffer.from(value.trim());
+  const expected = Buffer.from(configuredCode);
+
+  return (
+    provided.length === expected.length &&
+    timingSafeEqual(provided, expected)
+  );
+}
+
+function validateProfessorRegistration(role: string, professorCode: unknown) {
+  if (role !== "PROFESSOR") return null;
+  if (isProfessorRegistrationCodeValid(professorCode)) return null;
+
+  return env.professorRegistrationCode
+    ? "Invalid professor registration code"
+    : "Professor registration is not configured";
+}
+
 async function getMfaRequirement(
   authClient: ReturnType<typeof createSupabaseAuthClient>
 ) {
@@ -92,6 +122,7 @@ async function ensureProfile(args: {
   user: any;
   role?: string;
   fullName?: string;
+  professorCode?: unknown;
 }) {
   const { user } = args;
 
@@ -106,6 +137,14 @@ async function ensureProfile(args: {
   const role = cleanString(args.role, 20).toUpperCase();
   if (!allowedRoles.includes(role as (typeof allowedRoles)[number])) {
     return { profile: null, error: new Error("Role is required for new OAuth users") };
+  }
+
+  const professorError = validateProfessorRegistration(
+    role,
+    args.professorCode
+  );
+  if (professorError) {
+    return { profile: null, error: new Error(professorError) };
   }
 
   const fullName = cleanString(args.fullName, 100) || getUserDisplayName(user);
@@ -195,6 +234,14 @@ router.post("/register", authRateLimit, async (req, res) => {
 
   if (!allowedRoles.includes(role as (typeof allowedRoles)[number])) {
     return res.status(400).json({ message: "Invalid role" });
+  }
+
+  const professorError = validateProfessorRegistration(
+    role,
+    req.body.professorCode
+  );
+  if (professorError) {
+    return res.status(403).json({ message: professorError });
   }
 
   const { data: authData, error: authError } =
@@ -298,6 +345,14 @@ router.get("/google/url", authRateLimit, async (req, res) => {
     return res.status(400).json({ message: "Invalid role" });
   }
 
+  const professorError = validateProfessorRegistration(
+    role,
+    req.query.professorCode
+  );
+  if (professorError) {
+    return res.status(403).json({ message: professorError });
+  }
+
   const callbackUrl = new URL("/auth/callback", env.frontendOrigin);
   if (role) callbackUrl.searchParams.set("role", role);
 
@@ -351,6 +406,7 @@ router.post("/oauth/complete", authRateLimit, async (req, res) => {
     user,
     role: req.body.role,
     fullName: req.body.fullName,
+    professorCode: req.body.professorCode,
   });
 
   if (profileError || !profile) {

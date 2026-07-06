@@ -6,6 +6,8 @@ type Tab = "login" | "register";
 const PASSWORD_POLICY =
   "Geslo mora imeti vsaj 15 znakov ter vključevati veliko črko, številko in simbol.";
 
+const PROFESSOR_CODE_STORAGE_KEY = "learnsmart:professor-registration-code";
+
 function isStrongPassword(password: string) {
   return (
     password.length >= 15 &&
@@ -50,6 +52,7 @@ export default function AuthPage() {
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [professorCode, setProfessorCode] = useState("");
 
   useEffect(() => {
     const accessToken = getOAuthAccessToken();
@@ -62,7 +65,12 @@ export default function AuthPage() {
     setSuccess(null);
     setIsLoading(true);
 
-    completeOAuthLogin(accessToken, oauthRole)
+    const oauthProfessorCode =
+      oauthRole === "PROFESSOR"
+        ? sessionStorage.getItem(PROFESSOR_CODE_STORAGE_KEY) || ""
+        : "";
+
+    completeOAuthLogin(accessToken, oauthRole, oauthProfessorCode)
       .then((result) => {
         window.history.replaceState({}, document.title, "/");
         if (result.mfa) {
@@ -73,7 +81,10 @@ export default function AuthPage() {
 
         if (result.error) setError(result.error);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        sessionStorage.removeItem(PROFESSOR_CODE_STORAGE_KEY);
+        setIsLoading(false);
+      });
   }, [completeOAuthLogin]);
 
   async function handleLogin(e: React.FormEvent) {
@@ -110,6 +121,7 @@ export default function AuthPage() {
       password: regPassword,
       fullName: regName,
       role,
+      professorCode,
     });
     if (result.error) {
       setError(result.error);
@@ -128,7 +140,15 @@ export default function AuthPage() {
     setError(null);
     setSuccess(null);
     setIsLoading(true);
-    const result = await loginWithGoogle(role);
+    const oauthRole = tab === "register" ? role : "STUDENT";
+
+    if (oauthRole === "PROFESSOR" && professorCode.trim()) {
+      sessionStorage.setItem(PROFESSOR_CODE_STORAGE_KEY, professorCode.trim());
+    } else {
+      sessionStorage.removeItem(PROFESSOR_CODE_STORAGE_KEY);
+    }
+
+    const result = await loginWithGoogle(oauthRole, professorCode);
     if (result.error) {
       setError(result.error);
       setIsLoading(false);
@@ -438,6 +458,26 @@ export default function AuthPage() {
                   </button>
                 ))}
               </div>
+
+              {role === "PROFESSOR" && (
+                <>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Koda za profesorja
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={120}
+                    autoComplete="off"
+                    value={professorCode}
+                    onChange={(e) => setProfessorCode(e.target.value)}
+                    placeholder="vnesi kodo"
+                    className="mb-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition"
+                  />
+                  <p className="text-xs text-gray-400 mb-5">
+                    Profesorski racuni potrebujejo odobreno kodo.
+                  </p>
+                </>
+              )}
 
               {error && (
                 <p className="text-red-500 text-sm mb-3 bg-red-50 border border-red-100 rounded-xl px-4 py-2">

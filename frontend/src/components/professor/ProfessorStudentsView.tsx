@@ -21,9 +21,9 @@ const LEARNING_TYPE_STYLES: Record<LearningType, string> = {
 };
 
 const LEARNING_TYPE_ICONS: Record<LearningType, string> = {
-  VISUAL: "👁️",
-  AUDITORY: "🎧",
-  KINESTHETIC: "🤸",
+  VISUAL: "VIS",
+  AUDITORY: "AUD",
+  KINESTHETIC: "KIN",
 };
 
 function NeedsHelpBadge() {

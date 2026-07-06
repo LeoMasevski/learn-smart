@@ -110,9 +110,9 @@ export type LessonData = {
 //Learning tip 
 
 const LEARNING_TYPE_META = {
-  VISUAL:       { emoji: "👁️",  label: "Vizualni",       color: "bg-purple-100 text-purple-700" },
-  AUDITORY:     { emoji: "🎧",  label: "Slušni",         color: "bg-green-100 text-green-700" },
-  KINESTHETIC:  { emoji: "🤲",  label: "Kinestetični",   color: "bg-amber-100 text-amber-700" },
+  VISUAL:       { emoji: "VIS", label: "Vizualni",       color: "bg-purple-100 text-purple-700" },
+  AUDITORY:     { emoji: "AUD", label: "Slušni",         color: "bg-green-100 text-green-700" },
+  KINESTHETIC:  { emoji: "KIN", label: "Kinestetični",   color: "bg-amber-100 text-amber-700" },
 };
 
 //Block renderer 

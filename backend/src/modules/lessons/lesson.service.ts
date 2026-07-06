@@ -17,6 +17,24 @@ export async function getAllLessons() {
     .order("created_at", { ascending: false });
 }
 
+export async function getLessonsByCreatorId(createdBy: string) {
+  return await supabaseAdmin
+    .from("lessons")
+    .select(`
+      *,
+      subjects (
+        id,
+        name
+      ),
+      lesson_variants (
+        learning_type,
+        content_blocks
+      )
+    `)
+    .eq("created_by", createdBy)
+    .order("created_at", { ascending: false });
+}
+
 export async function getLessonById(id: string) {
   return await supabaseAdmin
     .from("lessons")
@@ -97,4 +115,37 @@ export async function getLessonsBySubjectId(subjectId: string) {
     `)
     .eq("subject_id", subjectId)
     .order("created_at", { ascending: false });
+}
+
+export async function getLessonsBySubjectIdForProfessor(
+  subjectId: string,
+  createdBy: string
+) {
+  return await supabaseAdmin
+    .from("lessons")
+    .select(`
+      *,
+      subjects (
+        id,
+        name
+      )
+    `)
+    .eq("subject_id", subjectId)
+    .eq("created_by", createdBy)
+    .order("created_at", { ascending: false });
+}
+
+export async function getLessonsByIdsForProfessor(
+  lessonIds: string[],
+  subjectId: string,
+  createdBy: string
+) {
+  if (lessonIds.length === 0) return { data: [], error: null };
+
+  return await supabaseAdmin
+    .from("lessons")
+    .select("id, subject_id, created_by")
+    .eq("subject_id", subjectId)
+    .eq("created_by", createdBy)
+    .in("id", lessonIds);
 }

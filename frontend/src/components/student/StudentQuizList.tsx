@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../api/api";
 import type { SubjectQuizForStudent, QuizAttempt } from "../../types/student";
 import StudentQuizResults from "./StudentQuizResults";
+import { Brain, Clock3, HelpCircle, ListChecks } from "lucide-react";
 
 type Props = {
   subjectId: string;
@@ -50,8 +51,8 @@ function QuizCard({
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-5 flex items-start gap-4">
         {/* Icon */}
-        <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-2xl shrink-0">
-          🧠
+        <div className="w-12 h-12 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+          <Brain className="h-6 w-6 text-violet-700" strokeWidth={2.1} />
         </div>
 
         {/* Info */}
@@ -59,10 +60,10 @@ function QuizCard({
           <h3 className="font-extrabold text-gray-900 text-base mb-1 truncate">{quiz.title}</h3>
           <div className="flex flex-wrap gap-2 mb-3">
             <span className="text-xs font-semibold bg-slate-100 text-slate-600 rounded-full px-2.5 py-0.5">
-              ❓ {quiz.question_count} vprašanj
+              <HelpCircle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" strokeWidth={2.1} /> {quiz.question_count} vprašanj
             </span>
             <span className="text-xs font-semibold bg-slate-100 text-slate-600 rounded-full px-2.5 py-0.5">
-              ⏱ {quiz.time_limit_minutes} min
+              <Clock3 className="inline h-3.5 w-3.5 mr-1 -mt-0.5" strokeWidth={2.1} /> {quiz.time_limit_minutes} min
             </span>
             <span className="text-xs font-semibold bg-slate-100 text-slate-600 rounded-full px-2.5 py-0.5">
               {QTYPE_LABELS[quiz.question_type]}
@@ -78,7 +79,7 @@ function QuizCard({
                 {score}% — {attempt.correct_count}/{attempt.total_count} pravilnih
               </span>
               {attempt.time_taken_seconds != null && (
-                <span className="text-xs text-gray-400">⏱ {formatTime(attempt.time_taken_seconds)}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-gray-400"><Clock3 className="h-3.5 w-3.5" strokeWidth={2.1} /> {formatTime(attempt.time_taken_seconds)}</span>
               )}
             </div>
           ) : (
@@ -93,7 +94,7 @@ function QuizCard({
             className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
               hasAttempt
                 ? "bg-gray-100 hover:bg-violet-50 text-gray-600 hover:text-violet-700 border border-gray-200"
-                : "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200 hover:shadow-lg hover:-translate-y-px"
+                : "bg-violet-600 text-white hover:bg-violet-700"
             }`}
           >
             {hasAttempt ? "Ponovi" : "Začni"}
@@ -173,7 +174,7 @@ const StudentQuizList = ({ subjectId, onStartQuiz }: Props) => {
   if (quizzes.length === 0) {
     return (
       <div className="text-center py-14">
-        <span className="text-4xl block mb-3">🧠</span>
+        <ListChecks className="mx-auto mb-3 h-10 w-10 text-slate-300" strokeWidth={1.8} />
         <p className="text-gray-500 font-semibold mb-1">Za ta predmet ni kvizov</p>
         <p className="text-gray-400 text-sm">Profesor še ni ustvaril kvizov.</p>
       </div>

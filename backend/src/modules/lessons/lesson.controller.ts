@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import {
-  getAllLessons,
   getLessonById,
+  getLessonsByCreatorId,
   createLesson,
   updateLesson,
   deleteLesson,
   getLessonsBySubjectId,
+  getLessonsBySubjectIdForProfessor,
 } from "./lesson.service";
 
 import { extractContentFromPdf, extractTextFromPdf } from "../../utils/pdf";
@@ -144,8 +145,45 @@ async function canReadSubjectContent(userId: string, subjectId: string) {
   return { allowed: true };
 }
 
-export async function handleGetAllLessons(_req: Request, res: Response) {
-  const { data, error } = await getAllLessons();
+function canProfessorManageResource(userId: string, resource: any) {
+  return resource?.created_by === userId;
+}
+
+async function canReadLesson(userId: string, lesson: any) {
+  const role = await getUserRole(userId);
+
+  if (!role) {
+    return { allowed: false, status: 403, message: "Profile not found" };
+  }
+
+  if (role === "PROFESSOR") {
+    return canProfessorManageResource(userId, lesson)
+      ? { allowed: true }
+      : {
+          allowed: false,
+          status: 403,
+          message: "You can only access lessons you created",
+        };
+  }
+
+  const { isEnrolled } = await isUserEnrolledInSubject(
+    userId,
+    lesson.subject_id
+  );
+  if (!isEnrolled) {
+    return {
+      allowed: false,
+      status: 403,
+      message: "You are not enrolled in this subject",
+    };
+  }
+
+  return { allowed: true };
+}
+
+export async function handleGetAllLessons(req: Request, res: Response) {
+  const user = (req as any).user;
+  const { data, error } = await getLessonsByCreatorId(user.id);
 
   if (error) {
     return res.status(500).json({
@@ -172,7 +210,7 @@ export async function handleGetLessonById(req: Request, res: Response) {
     });
   }
 
-  const access = await canReadSubjectContent(user.id, data.subject_id);
+  const access = await canReadLesson(user.id, data);
   if (!access.allowed) {
     return res.status(access.status ?? 403).json({ message: access.message });
   }
@@ -193,7 +231,7 @@ export async function handleGetLessonVariants(req: Request, res: Response) {
     return res.status(404).json({ message: "Lesson not found" });
   }
 
-  const access = await canReadSubjectContent(user.id, lesson.subject_id);
+  const access = await canReadLesson(user.id, lesson);
   if (!access.allowed) {
     return res.status(access.status ?? 403).json({ message: access.message });
   }
@@ -211,6 +249,7 @@ export async function handleGetLessonVariants(req: Request, res: Response) {
 
 export async function handleGenerateLessonVariants(req: Request, res: Response) {
   const lessonId = req.params.id as string;
+  const user = (req as any).user;
 
   if (!isUuid(lessonId)) {
     return res.status(400).json({ message: "Invalid lesson id" });
@@ -221,6 +260,12 @@ export async function handleGenerateLessonVariants(req: Request, res: Response) 
   if (lessonError || !lesson) {
     return res.status(404).json({
       message: "Lesson not found",
+    });
+  }
+
+  if (!canProfessorManageResource(user.id, lesson)) {
+    return res.status(403).json({
+      message: "You can only regenerate lessons you created",
     });
   }
 
@@ -329,6 +374,7 @@ export async function handleCreateLesson(req: Request, res: Response) {
 
 export async function handleUpdateLesson(req: Request, res: Response) {
   const id = req.params.id as string;
+  const user = (req as any).user;
   const subjectId =
     req.body.subjectId === undefined
       ? undefined
@@ -363,6 +409,19 @@ export async function handleUpdateLesson(req: Request, res: Response) {
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : aiInstructions;
 
+  const { data: existing, error: existingError } = await getLessonById(id);
+  if (existingError || !existing) {
+    return res.status(404).json({
+      message: "Lesson not found",
+    });
+  }
+
+  if (!canProfessorManageResource(user.id, existing)) {
+    return res.status(403).json({
+      message: "You can only update lessons you created",
+    });
+  }
+
   const { data, error } = await updateLesson(
     id,
     subjectId,
@@ -396,9 +455,23 @@ export async function handleUpdateLesson(req: Request, res: Response) {
 
 export async function handleDeleteLesson(req: Request, res: Response) {
   const id = req.params.id as string;
+  const user = (req as any).user;
 
   if (!isUuid(id)) {
     return res.status(400).json({ message: "Invalid lesson id" });
+  }
+
+  const { data: existing, error: existingError } = await getLessonById(id);
+  if (existingError || !existing) {
+    return res.status(404).json({
+      message: "Lesson not found",
+    });
+  }
+
+  if (!canProfessorManageResource(user.id, existing)) {
+    return res.status(403).json({
+      message: "You can only delete lessons you created",
+    });
   }
 
   const { data, error } = await deleteLesson(id);
@@ -427,6 +500,26 @@ export async function handleGetLessonsBySubject(req: Request, res: Response) {
 
   if (!isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
+  }
+
+  const role = await getUserRole(user.id);
+  if (!role) {
+    return res.status(403).json({ message: "Profile not found" });
+  }
+
+  if (role === "PROFESSOR") {
+    const { data, error } = await getLessonsBySubjectIdForProfessor(
+      subjectId,
+      user.id
+    );
+
+    if (error) {
+      return res.status(500).json({
+        message: "Failed to fetch lessons for subject",
+      });
+    }
+
+    return res.json(data);
   }
 
   const access = await canReadSubjectContent(user.id, subjectId);
@@ -470,7 +563,7 @@ export async function handleGetLessonVariantByLearningType(
     return res.status(404).json({ message: "Lesson not found" });
   }
 
-  const access = await canReadSubjectContent(user.id, lesson.subject_id);
+  const access = await canReadLesson(user.id, lesson);
   if (!access.allowed) {
     return res.status(access.status ?? 403).json({ message: access.message });
   }

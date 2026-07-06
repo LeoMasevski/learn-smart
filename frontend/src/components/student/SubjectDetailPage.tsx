@@ -2,8 +2,20 @@ import { useState } from "react";
 import type { StudentSubject, StudentLesson, SubjectQuizForStudent } from "../../types/student";
 import StudentQuizList from "./StudentQuizList";
 import { getSubjectIcon } from "../../utils/subjectIcons";
+import {
+  ArrowLeft,
+  BookOpen,
+  Brain,
+  FileText,
+  Sparkles,
+  Inbox,
+  Play,
+  ChevronRight,
+  ClipboardList,
+  type LucideIcon,
+} from "lucide-react";
 
-const LESSON_ICONS = ["📖", "🧠", "💡", "🔬", "📐", "🎯", "🗂️", "🧩"];
+const LESSON_ICONS: LucideIcon[] = [BookOpen, FileText, ClipboardList, Brain];
 
 type Props = {
   subject: StudentSubject;
@@ -34,24 +46,23 @@ export default function SubjectDetailPage({
         onClick={onBack}
         className="flex items-center gap-1 text-sm font-semibold text-violet-600 hover:opacity-70 transition-opacity mb-6"
       >
-        ← Nazaj na predmete
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.2} /> Nazaj na predmete
       </button>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-400 p-8 mb-6 shadow-lg shadow-violet-200 flex items-center gap-6">
-        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10 pointer-events-none" />
-        <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-          <SubjectIcon className="w-8 h-8 text-white" strokeWidth={2.25} />
+      <div className="relative overflow-hidden rounded-2xl bg-white border border-violet-100 p-8 mb-6 shadow-sm flex items-center gap-6">
+        <div className="w-16 h-16 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+          <SubjectIcon className="w-8 h-8 text-violet-700" strokeWidth={2.25} />
         </div>
         <div className="relative z-10">
-          <h1 className="text-2xl font-extrabold text-white mb-1">{subject.name}</h1>
-          <p className="text-violet-100 text-sm mb-3">{subject.description || "Brez opisa predmeta."}</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 mb-1">{subject.name}</h1>
+          <p className="text-slate-500 text-sm mb-3">{subject.description || "Brez opisa predmeta."}</p>
           <div className="flex gap-2 flex-wrap">
-            <span className="bg-white/20 border border-white/30 text-white text-xs font-bold px-3 py-1 rounded-full">
-              📝 {lessons.length} {lessons.length === 1 ? "lekcija" : lessons.length < 5 ? "lekcije" : "lekcij"}
+            <span className="bg-violet-50 border border-violet-100 text-violet-700 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" strokeWidth={2.2} /> {lessons.length} {lessons.length === 1 ? "lekcija" : lessons.length < 5 ? "lekcije" : "lekcij"}
             </span>
-            <span className="bg-white/30 border border-white/30 text-white text-xs font-bold px-3 py-1 rounded-full">
-              ✨ AI personalizirano
+            <span className="bg-slate-50 border border-slate-200 text-slate-600 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} /> AI personalizirano
             </span>
           </div>
         </div>
@@ -69,7 +80,11 @@ export default function SubjectDetailPage({
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "lekcije" ? "📖 Lekcije" : "🧠 Kvizi"}
+            {t === "lekcije" ? (
+              <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" strokeWidth={2.2} /> Lekcije</span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5"><Brain className="h-4 w-4" strokeWidth={2.2} /> Kvizi</span>
+            )}
           </button>
         ))}
       </div>
@@ -89,7 +104,7 @@ export default function SubjectDetailPage({
 
           {!loadingLesson && lessons.length === 0 && (
             <div className="text-center py-10">
-              <span className="text-4xl block mb-3">📭</span>
+              <Inbox className="mx-auto mb-3 h-10 w-10 text-slate-300" strokeWidth={1.8} />
               <p className="text-gray-400 text-sm">Za ta predmet še ni lekcij.</p>
             </div>
           )}
@@ -98,6 +113,7 @@ export default function SubjectDetailPage({
             <div className="flex flex-col gap-2">
               {lessons.map((lesson, i) => {
                 const active = selectedLesson?.id === lesson.id;
+                const LessonIcon = LESSON_ICONS[i % LESSON_ICONS.length];
                 return (
                   <button
                     key={lesson.id}
@@ -111,9 +127,9 @@ export default function SubjectDetailPage({
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 transition-colors ${
                       active ? "bg-violet-600 text-white" : "bg-gray-200 text-gray-500 group-hover:bg-violet-200 group-hover:text-violet-700"
                     }`}>
-                      {active ? "▶" : i + 1}
+                      {active ? <Play className="h-3 w-3" fill="currentColor" strokeWidth={2} /> : i + 1}
                     </span>
-                    <span className="text-xl shrink-0">{LESSON_ICONS[i % LESSON_ICONS.length]}</span>
+                    <LessonIcon className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-violet-600" strokeWidth={2.1} />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold truncate ${active ? "text-violet-800" : "text-gray-800"}`}>{lesson.title}</p>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
@@ -123,7 +139,7 @@ export default function SubjectDetailPage({
                     <div className="shrink-0">
                       {active
                         ? <span className="text-xs font-extrabold bg-violet-600 text-white px-3 py-1 rounded-full">Odprto</span>
-                        : <span className="text-gray-300 text-xl font-bold group-hover:text-violet-400 transition-colors">›</span>
+                        : <ChevronRight className="h-5 w-5 text-gray-300 transition-colors group-hover:text-violet-400" strokeWidth={2.2} />
                       }
                     </div>
                   </button>
