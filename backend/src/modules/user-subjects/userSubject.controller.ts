@@ -6,13 +6,22 @@ import {
   getStudentsForSubject,
   getSubjectStudentProgress,
 } from "./userSubject.service";
+import { getSubjectByIdForProfessor } from "../subjects/subject.service";
 import { isUuid } from "../../utils/validation";
 
 export async function handleGetSubjectStudents(req: Request, res: Response) {
   const subjectId = (req.params.id ?? req.params.subjectId) as string;
+  const user = (req as any).user;
 
   if (!isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
+  }
+
+  const { data: subject } = await getSubjectByIdForProfessor(subjectId, user.id);
+  if (!subject) {
+    return res.status(403).json({
+      message: "You can only view students for subjects you created",
+    });
   }
 
   const { data, error } = await getStudentsForSubject(subjectId);
@@ -59,6 +68,13 @@ export async function handleGetSubjectStudentProgress(req: Request, res: Respons
 
   if (!isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
+  }
+
+  const { data: subject } = await getSubjectByIdForProfessor(subjectId, user.id);
+  if (!subject) {
+    return res.status(403).json({
+      message: "You can only view progress for subjects you created",
+    });
   }
 
   const { data, error } = await getSubjectStudentProgress(subjectId, user.id);

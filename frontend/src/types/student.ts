@@ -46,6 +46,11 @@ export type StudentSubject = {
   id: string;
   name: string;
   description?: string | null;
+  created_by?: string;
+  professor?: {
+    id: string;
+    full_name: string;
+  } | null;
   created_at?: string;
   updated_at?: string;
 };
