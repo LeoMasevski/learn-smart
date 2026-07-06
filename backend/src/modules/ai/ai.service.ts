@@ -966,7 +966,7 @@ function sanitizeGeneratedLessonImages(
     if (!learningType) return [];
 
     const blocks = Array.isArray(variant.blocks) ? variant.blocks : [];
-    const sanitizedBlocks = blocks.slice(0, maxGeneratedLessonBlocks).flatMap((block: any) => {
+    const sanitizedBlocks = blocks.slice(0, maxGeneratedLessonBlocks).flatMap((block: any): any[] => {
       if (block?.type !== "image") {
         const sanitizedBlock = sanitizeLessonBlock(block);
         return sanitizedBlock ? [sanitizedBlock] : [];
@@ -983,7 +983,7 @@ function sanitizeGeneratedLessonImages(
 
       return [
         {
-          type: "image",
+          type: "image" as const,
           title: boundedText(block.title, 200) || image.title,
           url: image.url,
           alt: boundedText(block.alt, 300) || image.alt,
@@ -1015,7 +1015,7 @@ function sanitizeGeneratedLessonImages(
     if (missingVisualImages.length > 0) {
       visualVariant.blocks.push(
         ...missingVisualImages.map((image) => ({
-          type: "image",
+          type: "image" as const,
           title: image.title,
           url: image.url,
           alt: image.alt,
