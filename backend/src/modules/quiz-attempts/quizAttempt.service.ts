@@ -1,0 +1,193 @@
+import { supabaseAdmin } from "../../config/supabase";
+
+export async function startAttempt(quizId: string, studentId: string) {
+  const { data: completedAttempt, error: completedError } = await supabaseAdmin
+    .from("quiz_attempts")
+    .select("id")
+    .eq("quiz_id", quizId)
+    .eq("student_id", studentId)
+    .eq("status", "completed")
+    .maybeSingle();
+
+  if (completedError) return { data: null, error: completedError };
+  if (completedAttempt) {
+    return { data: null, error: new Error("Quiz already completed") };
+  }
+
+  // Only one in_progress attempt per student per quiz
+  await supabaseAdmin
+    .from("quiz_attempts")
+    .update({ status: "abandoned" })
+    .eq("quiz_id", quizId)
+    .eq("student_id", studentId)
+    .eq("status", "in_progress");
+
+  return await supabaseAdmin
+    .from("quiz_attempts")
+    .insert({ quiz_id: quizId, student_id: studentId, status: "in_progress" })
+    .select()
+    .single();
+}
+
+export async function submitAttempt(
+  attemptId: string,
+  studentId: string,
+  answers: { question_id: string; selected_answer: string }[],
+  timeTakenSeconds: number
+) {
+  // Verify ownership
+  const { data: attempt, error: aeErr } = await supabaseAdmin
+    .from("quiz_attempts")
+    .select("id, quiz_id, status")
+    .eq("id", attemptId)
+    .eq("student_id", studentId)
+    .single();
+
+  if (aeErr || !attempt) return { data: null, error: aeErr ?? new Error("Attempt not found") };
+  if (attempt.status === "completed") return { data: null, error: new Error("Already completed") };
+  if (attempt.status !== "in_progress") return { data: null, error: new Error("Attempt is not active") };
+
+  const uniqueAnswers = Array.from(
+    new Map(
+      answers
+        .filter(
+          (answer) =>
+            typeof answer.question_id === "string" &&
+            typeof answer.selected_answer === "string" &&
+            answer.selected_answer.trim().length > 0 &&
+            answer.selected_answer.length <= 500
+        )
+        .map((answer) => [
+          answer.question_id,
+          {
+            question_id: answer.question_id,
+            selected_answer: answer.selected_answer.trim(),
+          },
+        ])
+    ).values()
+  );
+
+  if (uniqueAnswers.length === 0) {
+    return { data: null, error: new Error("No valid answers submitted") };
+  }
+
+  // Score against every question in the quiz so omitted answers count as wrong.
+  const { data: questions, error: qErr } = await supabaseAdmin
+    .from("quiz_questions")
+    .select("id, correct_answer, options")
+    .eq("quiz_id", attempt.quiz_id)
+    .order("order_index", { ascending: true });
+
+  if (qErr || !questions) return { data: null, error: qErr ?? new Error("Questions not found") };
+  if (questions.length === 0) return { data: null, error: new Error("Quiz has no questions") };
+
+  const questionMap = new Map(questions.map((q: any) => [q.id, q]));
+  for (const answer of uniqueAnswers) {
+    const question = questionMap.get(answer.question_id) as any;
+    if (!question) {
+      return { data: null, error: new Error("Invalid question submitted") };
+    }
+
+    const options = Array.isArray(question.options) ? question.options : [];
+    if (!options.includes(answer.selected_answer)) {
+      return { data: null, error: new Error("Invalid answer submitted") };
+    }
+  }
+
+  const answerMap = new Map(
+    uniqueAnswers.map((answer) => [answer.question_id, answer.selected_answer])
+  );
+  const answerRows = uniqueAnswers.map((answer) => {
+    const question = questionMap.get(answer.question_id) as any;
+
+    return {
+      attempt_id: attemptId,
+      question_id: answer.question_id,
+      selected_answer: answer.selected_answer,
+      is_correct: question.correct_answer === answer.selected_answer,
+    };
+  });
+
+  if (answerRows.length > 0) {
+    await supabaseAdmin.from("quiz_attempt_answers").upsert(answerRows, { onConflict: "attempt_id,question_id" });
+  }
+
+  const correctCount = questions.filter(
+    (question: any) => answerMap.get(question.id) === question.correct_answer
+  ).length;
+  const total = questions.length;
+  const score = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+  return await supabaseAdmin
+    .from("quiz_attempts")
+    .update({
+      status: "completed",
+      finished_at: new Date().toISOString(),
+      score,
+      correct_count: correctCount,
+      total_count: total,
+      time_taken_seconds: timeTakenSeconds,
+    })
+    .eq("id", attemptId)
+    .select(`
+      *,
+      quiz_attempt_answers (
+        question_id,
+        selected_answer,
+        is_correct
+      )
+    `)
+    .single();
+}
+
+export async function getMyAttemptForQuiz(quizId: string, studentId: string) {
+  return await supabaseAdmin
+    .from("quiz_attempts")
+    .select(`
+      *,
+      quiz_attempt_answers (
+        question_id,
+        selected_answer,
+        is_correct
+      )
+    `)
+    .eq("quiz_id", quizId)
+    .eq("student_id", studentId)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+}
+
+export async function getQuizResultsForProfessor(quizId: string) {
+  const { data: attempts, error } = await supabaseAdmin
+    .from("quiz_attempts")
+    .select(`
+      id,
+      score,
+      correct_count,
+      total_count,
+      time_taken_seconds,
+      started_at,
+      finished_at,
+      status,
+      student_id
+    `)
+    .eq("quiz_id", quizId)
+    .eq("status", "completed")
+    .order("score", { ascending: false });
+
+  if (error || !attempts) return { data: attempts, error };
+
+  const studentIds = [...new Set(attempts.map((a) => a.student_id))];
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, learning_type")
+    .in("id", studentIds);
+
+  const profileMap: Record<string, { id: string; full_name: string; learning_type: string | null }> = {};
+  for (const p of profiles ?? []) profileMap[p.id] = p;
+
+  const data = attempts.map((a) => ({ ...a, profiles: profileMap[a.student_id] ?? null }));
+
+  return { data, error: null };
+}

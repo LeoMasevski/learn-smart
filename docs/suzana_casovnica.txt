@@ -1,0 +1,81 @@
+ČASOVNICA SUZANA
+
+6.5.2026
+Pregled vseh zahtev in določitev funkcionalnosti za projekt
+Izdelava DPU diagrama v draw.io
+
+9.5.2026
+Izdelava osnovnega okolja (vite/react) za frontend
+Delanje v lokalnem okolju in prikaz
+"Dummy podatki" uporabljeni za prikazovanje
+
+10.5
+Izdelava časovnic in pushanje v github
+Organizacija map, branchov in skupine 
+
+13.5
+Delanje ER diagrama za bazo
+
+16.5
+Izdelava UI na frontendu za registracijo in prijavo
+posebej za profesorja in študenta/dijaka
+
+17.5
+Konekcija kviza za learning type z backendom
+Dodatek da glede na kviz potem se določi learning type na študenta
+Shranitev v bazo
+
+25.5
+Ustvaritev komponent za lessons
+
+26.5
+Ureditev forme za profesorja za nalaganje lekcij
+Delanje na PDF
+
+27.5
+dodati možnost vnosa aiInstructions/prompta
+pošiljanje multipart/form-data requesta
+
+28.5
+prikaz uspešnega generiranja variant
+popravitev da ob log outu studenta ga da na prijavo page
+popravitev da tudi drag in PDF deluje
+
+1.6
+dodajanje Subject Detail Page tsx komponento
+
+3.6
+Posodabljanje Student dashboard za izgled
+Testiranje delovanja
+
+5.6
+Posodabljanje student dashboard da vidimo vse predmete
+vpis v predmete da deluje
+
+6.6
+posodabljanje da se lahko spremeni učni tip učenca
+posodobljen profil učenca
+
+7.6
+dodajanje mock podatkov
+loading error/empty stanja
+
+8.6 
+"Moj napredek" page dodan 
+uporabljeni mock podatki dokler ni backenda
+
+10.6 
+Delo za dashboard
+popravek nekaj stvari
+
+15.6
+Izgled results od študentov ki naredijo kvize
+izgled te strani
+
+16.6 
+Popravljanje authcontext
+
+23.6
+izboljšava videza
+omogočanje več gumbov za razumljivost
+omogočanje odjave profesorja

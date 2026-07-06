@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Ana Novak",
+      "email": "ana@test.com",
+      "password": "test123",
+      "role": "student",
+      "learningType": "visual",
+      "createdAt": "2025-01-10T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Rok Kovač",
+      "email": "rok@test.com",
+      "password": "test123",
+      "role": "student",
+      "learningType": "kinesthetic",
+      "createdAt": "2025-01-11T09:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "name": "Prof. Maja Zupan",
+      "email": "maja@test.com",
+      "password": "test123",
+      "role": "professor",
+      "learningType": null,
+      "createdAt": "2025-01-09T08:00:00.000Z"
+    }
+  ],
+  "quizResults": []
+}

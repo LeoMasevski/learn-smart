@@ -1,0 +1,73 @@
+ČASOVNICA SKUPINE
+
+2.5.2026
+Odgovor profesorja za odobreno vizijo in dodelitev skrbnice Maje Pušnik
+
+3.5.2026
+Poslan email z končno verzijo vizije in določitev termina prvega sestanka 7.5 ob 13 v seminarski sobi.
+Delo prvi teden: DPU, vzpostavitev githuba, osnovna arhitektura rešitve, generirana figma
+
+7.5.2026
+Sestanek z mentorico, določitev vseh nadaljnih sestankov (14.5 ob 13.00, 20.5 ob 14.00 in 29.5 ob 9.00)
+Dogovor do 14.5:
+- SZPO
+- Kanban
+- Časovnice
+- Priprava razvojnega okolja
+- Osnovna grafična podoba
+- Baza in backend
+
+14.5. 2026
+Sestanek
+Do naslednič:
+- Čim več funkcionalnosti
+- Da pridemo do čim bolj končnega delanja
+- AI da dela stvari
+- Prijava/Registracija c
+- Idealno VSE osnovne funkcionalnosti
+- (če ostane čas lahko testiramo) - uporabniško testiranje (sošolec poklika ali nekaj)
+- Matrika znanj (pod dokumentacijo, v čem je kdo dober, zakaj dela kdo)
+- VCAG, preverjanje dostopnosti
+- Naša omejitev da npr če kdo slabše vidi 
+
+20.5.2026
+Poslan mail za trenutne funkcionalnosti
+Določitev da se ne dobimo da samo funkcionalnosti zrihtamo do nasledjič
+
+29.5.2026
+Sestanek ob 9 online
+Kaj je še potrebno dodati:
+    na profilu za studenta zamenjava za tip
+    kviz za vsako lekcijo
+    prejšne verzije za profesorja 
+    dashboard za pregled rezulatov in profesorjem kako jim gre
+    igrifikacija
+    testiranje
+    spreminjanje za vsak tip
+    uporabniski scenarij za oba (profesor in student)
+
+Torek 2.6 ob 9 online da se dobimo
+
+2.6.2026
+Prestavitev sestanka na petek 5.6
+
+5.6.2026
+pogovor za nadaljevanje
+sprinte da oddamo
+čimveč implementirati kakor smo si zamislili
+spet pokazamo nasledni sprint, danes teden
+dogovor za 12.6 sestanek 8.00/8.15
+
+12.6
+sestanek
+pogovor o nadaljevanju
+predvsem delamo na izboljšavah, funkcionalnosti so načeloma skoraj konec
+sestanek 17.6 ob 16
+
+17.6
+sestanek ob 16
+zopet nadaljevanje, sprinte oddajat
+predvsem da bo razumljivo za uporabo 
+24.6 ob 16 sestanek
+
+24.6
