@@ -16,6 +16,8 @@ Aplikacija podpira tri učne tipe:
 - podpora za dvofaktorsko avtentikacijo z aplikacijo za enkratne kode
 - kviz za določanje učnega tipa po registraciji
 - vpis študentov v predmete
+- študenti vidijo katalog predmetov in profesorja, ki je predmet ustvaril
+- profesorji vidijo in upravljajo samo svoje predmete
 - ustvarjanje predmetov, lekcij in kvizov za profesorje
 - nalaganje PDF gradiv za lekcije
 - AI-generiranje učnih variant za vizualni, slušni in kinestetični tip
@@ -165,6 +167,7 @@ VITE_API_URL=http://localhost:5000/api
 ```text
 001_initial_schema.sql
 002_security_hardening.sql
+003_subject_ownership.sql
 ```
 
 3. Ustvari Storage bucket z imenom, ki je nastavljen v `SUPABASE_LESSON_IMAGES_BUCKET`, privzeto `lesson_images`.

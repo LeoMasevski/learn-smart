@@ -29,6 +29,25 @@ create table if not exists public.subjects (
   updated_at timestamptz not null default now()
 );
 
+alter table public.subjects
+  add column if not exists created_by uuid;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'subjects_created_by_fkey'
+      and conrelid = 'public.subjects'::regclass
+  ) then
+    alter table public.subjects
+      add constraint subjects_created_by_fkey
+      foreign key (created_by)
+      references public.profiles(id)
+      on delete restrict;
+  end if;
+end $$;
+
 create table if not exists public.user_subjects (
   user_id uuid not null references public.profiles(id) on delete cascade,
   subject_id uuid not null references public.subjects(id) on delete cascade,
@@ -107,6 +126,60 @@ create table if not exists public.quiz_attempt_answers (
   is_correct boolean not null default false,
   primary key (attempt_id, question_id)
 );
+
+update public.subjects s
+set created_by = coalesce(
+  (
+    select l.created_by
+    from public.lessons l
+    where l.subject_id = s.id
+    order by l.created_at asc
+    limit 1
+  ),
+  (
+    select q.created_by
+    from public.subject_quizzes q
+    where q.subject_id = s.id
+    order by q.created_at asc
+    limit 1
+  )
+)
+where s.created_by is null;
+
+do $$
+begin
+  if exists (select 1 from public.subjects where created_by is null) then
+    raise exception
+      'Some subjects have no created_by owner. Truncate app data first or assign owners before running this schema.';
+  end if;
+end $$;
+
+alter table public.subjects
+  alter column created_by set not null;
+
+do $$
+declare
+  quiz_results_kind "char";
+begin
+  select c.relkind
+  into quiz_results_kind
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public'
+    and c.relname = 'quiz_results';
+
+  if quiz_results_kind = 'v' then
+    execute 'drop view public.quiz_results cascade';
+  elsif quiz_results_kind = 'm' then
+    execute 'drop materialized view public.quiz_results cascade';
+  elsif quiz_results_kind in ('r', 'p') then
+    execute 'drop table public.quiz_results cascade';
+  elsif quiz_results_kind = 'f' then
+    execute 'drop foreign table public.quiz_results cascade';
+  elsif quiz_results_kind is not null then
+    raise exception 'public.quiz_results exists but is not a table or view';
+  end if;
+end $$;
 
 create or replace view public.quiz_results as
 select
