@@ -24,6 +24,7 @@ import {
 import { assertPdfBuffer } from "../../middleware/upload.middleware";
 import { getUserRole } from "../../middleware/role.middleware";
 import { isUserEnrolledInSubject } from "../user-subjects/userSubject.service";
+import { getSubjectByIdForProfessor } from "../subjects/subject.service";
 import { cleanString, isUuid } from "../../utils/validation";
 
 const maxLessonContentLength = 80_000;
@@ -130,7 +131,14 @@ async function canReadSubjectContent(userId: string, subjectId: string) {
   }
 
   if (role === "PROFESSOR") {
-    return { allowed: true };
+    const { data: subject } = await getSubjectByIdForProfessor(subjectId, userId);
+    return subject
+      ? { allowed: true }
+      : {
+          allowed: false,
+          status: 403,
+          message: "You can only access subjects you created",
+        };
   }
 
   const { isEnrolled } = await isUserEnrolledInSubject(userId, subjectId);
@@ -304,6 +312,13 @@ export async function handleCreateLesson(req: Request, res: Response) {
   const safeAiInstructions =
     typeof aiInstructions === "string" ? aiInstructions.slice(0, 1000) : "";
 
+  const { data: subject } = await getSubjectByIdForProfessor(subjectId, user.id);
+  if (!subject) {
+    return res.status(403).json({
+      message: "You can only create lessons for subjects you created",
+    });
+  }
+
   let finalContent = originalContent.trim();
   let pdfBufferForGeneration: Buffer | undefined;
 
@@ -404,6 +419,15 @@ export async function handleUpdateLesson(req: Request, res: Response) {
 
   if (subjectId !== undefined && !isUuid(subjectId)) {
     return res.status(400).json({ message: "Invalid subject id" });
+  }
+
+  if (subjectId !== undefined) {
+    const { data: subject } = await getSubjectByIdForProfessor(subjectId, user.id);
+    if (!subject) {
+      return res.status(403).json({
+        message: "You can only move lessons to subjects you created",
+      });
+    }
   }
 
   const safeAiInstructions =

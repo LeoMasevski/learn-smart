@@ -88,8 +88,13 @@ export async function getUserSubjects(userId: string) {
         id,
         name,
         description,
+        created_by,
         created_at,
-        updated_at
+        updated_at,
+        professor:profiles!subjects_created_by_fkey (
+          id,
+          full_name
+        )
       )
     `)
     .eq("user_id", userId)

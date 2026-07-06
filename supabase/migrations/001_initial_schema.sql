@@ -22,6 +22,7 @@ create table if not exists public.profiles (
 
 create table if not exists public.subjects (
   id uuid primary key default gen_random_uuid(),
+  created_by uuid not null constraint subjects_created_by_fkey references public.profiles(id) on delete restrict,
   name text not null check (char_length(name) between 1 and 150),
   description text,
   created_at timestamptz not null default now(),
@@ -121,6 +122,7 @@ from public.quiz_attempts qa
 where qa.status = 'completed';
 
 create index if not exists idx_user_subjects_subject_id on public.user_subjects(subject_id);
+create index if not exists idx_subjects_created_by on public.subjects(created_by);
 create index if not exists idx_lessons_subject_id on public.lessons(subject_id);
 create index if not exists idx_lesson_variants_lesson_id on public.lesson_variants(lesson_id);
 create index if not exists idx_subject_quizzes_subject_id on public.subject_quizzes(subject_id);
@@ -186,21 +188,31 @@ to authenticated
 using (id = auth.uid())
 with check (id = auth.uid());
 
-create policy "subjects read authenticated"
+create policy "subjects read student catalog or creator"
 on public.subjects for select
 to authenticated
-using (true);
+using (
+  created_by = auth.uid()
+  or exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'STUDENT'
+  )
+);
 
-create policy "subjects professor write"
+create policy "subjects professor creator write"
 on public.subjects for all
 to authenticated
 using (
+  created_by = auth.uid()
+  and
   exists (
     select 1 from public.profiles p
     where p.id = auth.uid() and p.role = 'PROFESSOR'
   )
 )
 with check (
+  created_by = auth.uid()
+  and
   exists (
     select 1 from public.profiles p
     where p.id = auth.uid() and p.role = 'PROFESSOR'

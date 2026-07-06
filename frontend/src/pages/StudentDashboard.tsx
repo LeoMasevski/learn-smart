@@ -354,6 +354,10 @@ export default function StudentDashboard() {
                       <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
                         {subject.description || "Brez opisa predmeta."}
                       </p>
+                      <p className="text-gray-500 text-xs font-semibold mt-2 inline-flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-gray-400" strokeWidth={2.25} />
+                        Profesor: {subject.professor?.full_name || "Ni podatka"}
+                      </p>
                     </div>
 
                     {/* Enroll button */}
