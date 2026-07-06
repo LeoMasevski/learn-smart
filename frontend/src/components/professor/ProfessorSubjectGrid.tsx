@@ -1,4 +1,5 @@
 import type { Subject } from "../../types/professor";
+import { BookOpen } from "lucide-react";
 
 type Props = {
   subjects: Subject[];
@@ -15,8 +16,8 @@ const ProfessorSubjectGrid = ({ subjects, onOpen, onEdit, onDelete }: Props) => 
           key={subject.id}
           className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden"
         >
-          <div className="h-32 bg-gradient-to-br from-violet-500 to-indigo-400 p-6 text-white text-4xl">
-            📘
+          <div className="h-32 bg-violet-50 border-b border-violet-100 p-6 text-violet-700">
+            <BookOpen className="h-8 w-8" strokeWidth={2.1} />
           </div>
 
           <div className="p-6">

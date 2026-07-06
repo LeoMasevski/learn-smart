@@ -14,6 +14,7 @@ import {
   BarChart3,
   Menu,
   AlertCircle,
+  LogOut,
   X,
 } from "lucide-react";
 
@@ -29,6 +30,8 @@ import ConfirmDialog from "../components/professor/ConfirmDialog";
 import Toast from "../components/professor/Toast";
 import { getSubjectIcon } from "../utils/subjectIcons";
 import SecuritySettings from "../components/auth/SecuritySettings";
+import BrandLogo from "../components/common/BrandLogo";
+import { useAuth } from "../context/AuthContext";
 
 const SUBJECT_STYLES = [
   { bg: "bg-violet-100", text: "text-violet-600" },
@@ -51,6 +54,7 @@ type ToastState = {
 };
 
 const ProfessorDashboard = () => {
+  const { profile, logout } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -73,6 +77,7 @@ const ProfessorDashboard = () => {
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -217,10 +222,53 @@ const ProfessorDashboard = () => {
     }
   };
 
+  const getInitials = () =>
+    profile?.full_name
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P";
+
+  const handleLogout = () => {
+    if (window.confirm("Ali se res želiš odjaviti?")) {
+      logout();
+    }
+    setShowUserMenu(false);
+  };
+
+  const Topbar = () => (
+    <div className="flex justify-end items-center h-14 mb-2 relative">
+      <button
+        onClick={() => setShowUserMenu((open) => !open)}
+        className="w-9 h-9 rounded-full bg-violet-600 text-white text-sm font-bold flex items-center justify-center hover:bg-violet-700 transition-colors"
+        aria-label="Uporabniški meni"
+        aria-haspopup="true"
+        aria-expanded={showUserMenu}
+      >
+        {getInitials()}
+      </button>
+      {showUserMenu && (
+        <div className="absolute right-0 top-11 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-4">
+          <p className="font-bold text-gray-900 text-sm mb-3 truncate">
+            {profile?.full_name || "Profesor"}
+          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-violet-700 transition-colors"
+          >
+            <LogOut className="w-4 h-4" strokeWidth={2.25} />
+            Odjava
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   const renderHome = () => (
     <>
       {/* Header */}
-      <div className="mb-6 rounded-[28px] bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
+      <div className="mb-6 rounded-2xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-4xl font-semibold text-slate-900">Profesor Dashboard</h1>
@@ -229,14 +277,14 @@ const ProfessorDashboard = () => {
           <div className="flex flex-row sm:flex-col gap-2 sm:gap-3">
             <button
               onClick={openCreateSubject}
-              className="flex-1 sm:flex-none rounded-2xl bg-violet-500 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-sm hover:bg-violet-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="flex-1 sm:flex-none rounded-xl bg-violet-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-sm hover:bg-violet-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
               Dodaj predmet
             </button>
             <button
               onClick={openCreateLesson}
-              className="flex-1 sm:flex-none rounded-2xl bg-white border border-violet-200 px-4 sm:px-6 py-2.5 sm:py-3 text-violet-700 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="flex-1 sm:flex-none rounded-xl bg-white border border-violet-200 px-4 sm:px-6 py-2.5 sm:py-3 text-violet-700 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
               Dodaj gradivo
@@ -247,7 +295,7 @@ const ProfessorDashboard = () => {
 
       {/* Stats */}
       <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
+        <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
           <p className="text-xs sm:text-sm text-slate-500">Predmeti</p>
           <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {loadingSubjects ? (
@@ -258,7 +306,7 @@ const ProfessorDashboard = () => {
           </h3>
         </div>
 
-        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
+        <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200">
           <p className="text-xs sm:text-sm text-slate-500">Učna gradiva</p>
           <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {loadingLessons ? (
@@ -269,7 +317,7 @@ const ProfessorDashboard = () => {
           </h3>
         </div>
 
-        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200 col-span-2 sm:col-span-1">
+        <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-sm border border-slate-200 col-span-2 sm:col-span-1">
           <p className="text-xs sm:text-sm text-slate-500">Vpisani študenti</p>
           <h3 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold text-slate-900">
             {totalStudents === null ? (
@@ -281,12 +329,12 @@ const ProfessorDashboard = () => {
           <p className="mt-0.5 text-xs text-slate-400">Unikatnih po vseh predmetih</p>
         </div>
 
-        <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm text-white col-span-2 sm:col-span-1">
-          <p className="text-violet-100 text-xs sm:text-sm font-medium mb-1 flex items-center gap-1.5">
+        <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-sm border border-violet-100 col-span-2 sm:col-span-1">
+          <p className="text-violet-600 text-xs sm:text-sm font-medium mb-1 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} /> AI pomočnik
           </p>
-          <h2 className="text-sm sm:text-lg font-semibold">Generiranje učnih variant</h2>
-          <p className="mt-1 text-violet-200 text-xs">Vizualni · Slušni · Kinestetični</p>
+          <h2 className="text-sm sm:text-lg font-semibold text-slate-900">Generiranje učnih variant</h2>
+          <p className="mt-1 text-slate-500 text-xs">Vizualni · Slušni · Kinestetični</p>
         </div>
       </div>
 
@@ -305,23 +353,23 @@ const ProfessorDashboard = () => {
       {loadingSubjects ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 animate-pulse">
+            <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 animate-pulse">
               <div className="h-28 bg-slate-100" />
               <div className="p-5 sm:p-6">
                 <div className="h-5 bg-slate-100 rounded-lg mb-3 w-3/4" />
                 <div className="h-3 bg-slate-50 rounded mb-2 w-full" />
                 <div className="h-3 bg-slate-50 rounded mb-5 w-2/3" />
                 <div className="flex gap-2">
-                  <div className="flex-1 h-10 bg-slate-100 rounded-2xl" />
-                  <div className="w-14 h-10 bg-slate-50 rounded-2xl" />
-                  <div className="w-14 h-10 bg-slate-50 rounded-2xl" />
+                  <div className="flex-1 h-10 bg-slate-100 rounded-xl" />
+                  <div className="w-14 h-10 bg-slate-50 rounded-xl" />
+                  <div className="w-14 h-10 bg-slate-50 rounded-xl" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : subjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4 rounded-3xl bg-white border border-dashed border-slate-200">
+        <div className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4 rounded-2xl bg-white border border-dashed border-slate-200">
           <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center text-3xl">
             <GraduationCap className="w-8 h-8 text-violet-500" strokeWidth={2} />
           </div>
@@ -331,7 +379,7 @@ const ProfessorDashboard = () => {
           </p>
           <button
             onClick={openCreateSubject}
-            className="mt-2 rounded-2xl bg-violet-500 px-7 py-3 text-white font-semibold shadow-sm hover:bg-violet-600 transition"
+            className="mt-2 rounded-xl bg-violet-600 px-7 py-3 text-white font-semibold shadow-sm hover:bg-violet-700 transition"
           >
             + Dodaj prvi predmet
           </button>
@@ -346,10 +394,10 @@ const ProfessorDashboard = () => {
             return (
               <div
                 key={subject.id}
-                className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-lg transition duration-300 flex flex-col"
+                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-lg transition duration-300 flex flex-col"
               >
                 <div className={`h-28 ${bg} p-5 flex items-start justify-between`}>
-                  <div className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-xl bg-white/70 flex items-center justify-center">
                     <SubjectIcon className={`w-7 h-7 ${text}`} strokeWidth={2.25} />
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -374,7 +422,7 @@ const ProfessorDashboard = () => {
                         setSelectedSubject(subject);
                         setPreviewLesson(null);
                       }}
-                      className="flex-1 bg-violet-500 hover:bg-violet-600 text-white py-2.5 rounded-xl font-semibold transition text-sm"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700 text-white py-2.5 rounded-xl font-semibold transition text-sm"
                     >
                       Odpri
                     </button>
@@ -426,19 +474,19 @@ const ProfessorDashboard = () => {
           Nazaj na predmete
         </button>
 
-        <div className="mb-6 rounded-3xl bg-gradient-to-br from-violet-500 to-fuchsia-500 p-6 sm:p-8 shadow-md text-white">
+        <div className="mb-6 rounded-2xl bg-white p-6 sm:p-8 shadow-sm border border-violet-100">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
-              <span className="text-violet-200 text-sm font-medium">Aktiven predmet</span>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-bold">{selectedSubject.name}</h1>
+              <span className="text-violet-600 text-sm font-medium">Aktiven predmet</span>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-900">{selectedSubject.name}</h1>
               {selectedSubject.description && (
-                <p className="mt-2 text-violet-100 text-sm">{selectedSubject.description}</p>
+                <p className="mt-2 text-slate-500 text-sm">{selectedSubject.description}</p>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold">
+                <span className="bg-violet-50 border border-violet-100 px-3 py-1 rounded-full text-violet-700 text-xs font-semibold">
                   {selectedLessons.length} {selectedLessons.length === 1 ? "gradivo" : "gradiva"}
                 </span>
-                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1">
+                <span className="bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-slate-600 text-xs font-semibold flex items-center gap-1">
                   <Sparkles className="w-3 h-3" strokeWidth={2.25} /> AI variante
                 </span>
               </div>
@@ -446,7 +494,7 @@ const ProfessorDashboard = () => {
 
             <button
               onClick={openCreateLesson}
-              className="shrink-0 rounded-2xl bg-white text-violet-700 px-5 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-sm hover:bg-violet-50 transition flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
+              className="shrink-0 rounded-xl bg-violet-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 font-semibold hover:bg-violet-700 transition flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />
               Dodaj gradivo
@@ -456,7 +504,7 @@ const ProfessorDashboard = () => {
 
         {/* Tab navigation */}
         <div className="mb-6 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-          <div className="flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit min-w-full sm:min-w-0">
+          <div className="flex gap-1 rounded-xl bg-slate-100 p-1 w-fit min-w-full sm:min-w-0">
             {([
               { key: "gradivo", label: "Gradivo", icon: BookOpen },
               { key: "kvizi", label: "Kvizi", icon: Brain },
@@ -497,7 +545,7 @@ const ProfessorDashboard = () => {
 
             {/* Lessons error */}
             {lessonsError && (
-              <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
+              <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 sm:px-5 py-4 text-red-600 flex items-center gap-3">
                 <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={2} />
                 <span className="font-medium text-sm">{lessonsError}</span>
                 <button onClick={() => fetchLessons()} className="ml-auto text-sm font-semibold underline shrink-0">
@@ -507,7 +555,7 @@ const ProfessorDashboard = () => {
             )}
 
             {loadingLessons ? (
-              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
                 {[1, 2].map((i) => (
                   <div key={i} className="flex gap-4 animate-pulse">
                     <div className="w-10 h-10 bg-slate-100 rounded-xl shrink-0" />
@@ -519,7 +567,7 @@ const ProfessorDashboard = () => {
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                 <LessonList
                   lessons={selectedLessons}
                   onEdit={openEditLesson}
@@ -534,7 +582,7 @@ const ProfessorDashboard = () => {
 
             {/* AI Preview panel */}
             {previewLesson && (
-              <div className="mt-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+              <div className="mt-6 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100">
                   <div>
                     <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide mb-0.5 flex items-center gap-1">
@@ -591,7 +639,7 @@ const ProfessorDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex">
+    <div className="min-h-screen bg-gray-50 flex">
       <ProfessorSidebar
         selectedSubject={selectedSubject}
         subjects={subjects}
@@ -620,16 +668,14 @@ const ProfessorDashboard = () => {
           >
             <Menu className="w-5 h-5" strokeWidth={2} />
           </button>
-          <h1 className="text-base font-bold bg-gradient-to-r from-violet-700 to-fuchsia-500 bg-clip-text text-transparent flex items-center gap-1.5">
-            <GraduationCap className="w-4 h-4 text-violet-600" strokeWidth={2.25} />
-            LearnSmart
-          </h1>
+          <BrandLogo compact />
           {selectedSubject && (
             <span className="text-sm text-slate-500 truncate">{selectedSubject.name}</span>
           )}
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          <Topbar />
           {!selectedSubject ? renderHome() : renderSubjectDetail()}
         </main>
       </div>

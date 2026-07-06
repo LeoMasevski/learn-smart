@@ -1,10 +1,10 @@
 import React from "react";
-import { GraduationCap } from "lucide-react";
 import { useQuiz } from "../../hooks/useQuiz";
 import { QuizIntro } from "./QuizIntro";
 import { QuizQuestion } from "./QuizQuestion";
 import { QuizResult } from "./QuizResult";
 import { LearningType } from "../../data/quizQuestions";
+import BrandLogo from "../common/BrandLogo";
 import "../../styles/quiz.css";
 
 interface LearningTypeQuizProps {
@@ -37,12 +37,9 @@ export const LearningTypeQuiz: React.FC<LearningTypeQuizProps> = ({ onComplete }
   return (
     <div className="quiz-shell">
       <main className="quiz-main">
-        <div className="quiz-card">
+          <div className="quiz-card">
           <div className="quiz-card-header">
-            <div className="quiz-brand">
-              <GraduationCap size={20} strokeWidth={2.25} />
-              <span>LearnSmart</span>
-            </div>
+            <BrandLogo compact />
             <div>
               <h1 className="page-title">{pageTitle}</h1>
               <p className="page-subtitle">{pageSubtitle}</p>

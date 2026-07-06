@@ -9,6 +9,17 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import {
+  AlertTriangle,
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  FileText,
+  Star,
+  Target,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { fetchQuizResults, fetchSubjectProgress, fetchStudentStats } from "../api/progressApi";
 import type { QuizResultEntry, SubjectProgress, StudentStats } from "../types/progress";
 
@@ -43,10 +54,8 @@ function LoadingSkeleton() {
           key={i}
           style={{
             height: 72,
-            background: "linear-gradient(90deg, #f3f0ff 25%, #e5e7eb 50%, #f3f0ff 75%)",
-            backgroundSize: "200% 100%",
+            background: "#f3f4f6",
             borderRadius: 14,
-            animation: "shimmer 1.4s infinite",
           }}
         />
       ))}
@@ -54,7 +63,7 @@ function LoadingSkeleton() {
   );
 }
 
-function EmptyState({ icon, title, text }: { icon: string; title: string; text: string }) {
+function EmptyState({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
   return (
     <div
       style={{
@@ -63,7 +72,21 @@ function EmptyState({ icon, title, text }: { icon: string; title: string; text: 
         color: "#6b7280",
       }}
     >
-      <div style={{ fontSize: 52, marginBottom: 14 }}>{icon}</div>
+      <div
+        style={{
+          width: 58,
+          height: 58,
+          margin: "0 auto 14px",
+          borderRadius: 16,
+          background: "#f3f0ff",
+          color: "#6c63ff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={26} strokeWidth={2.25} />
+      </div>
       <h3 style={{ margin: "0 0 8px", color: "#374151", fontSize: 20 }}>{title}</h3>
       <p style={{ margin: 0, fontSize: 15 }}>{text}</p>
     </div>
@@ -82,7 +105,7 @@ function ErrorState({ msg, onRetry }: { msg: string; onRetry: () => void }) {
         color: "#dc2626",
       }}
     >
-      <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+      <AlertTriangle size={34} strokeWidth={2.25} style={{ marginBottom: 12 }} />
       <p style={{ fontWeight: 700, marginBottom: 8 }}>{msg}</p>
       <button
         onClick={onRetry}
@@ -103,12 +126,12 @@ function ErrorState({ msg, onRetry }: { msg: string; onRetry: () => void }) {
 }
 
 function StatCard({
-  icon,
+  icon: Icon,
   label,
   value,
   color,
 }: {
-  icon: string;
+  icon: LucideIcon;
   label: string;
   value: string | number;
   color: string;
@@ -137,9 +160,10 @@ function StatCard({
           justifyContent: "center",
           fontSize: 22,
           flexShrink: 0,
+          color,
         }}
       >
-        {icon}
+        <Icon size={23} strokeWidth={2.25} />
       </div>
       <div>
         <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 600 }}>{label}</div>
@@ -188,10 +212,10 @@ export default function StudentProgress() {
 
   const barColors = ["#6c63ff", "#60a5fa", "#10b981", "#f59e0b", "#f472b6"];
 
-  const tabs: { key: TabType; label: string; icon: string }[] = [
-    { key: "pregled", label: "Pregled", icon: "📊" },
-    { key: "kvizi", label: "Kvizi", icon: "📝" },
-    { key: "predmeti", label: "Predmeti", icon: "📚" },
+  const tabs: { key: TabType; label: string; icon: LucideIcon }[] = [
+    { key: "pregled", label: "Pregled", icon: BarChart3 },
+    { key: "kvizi", label: "Kvizi", icon: ClipboardList },
+    { key: "predmeti", label: "Predmeti", icon: BookOpen },
   ];
 
   return (
@@ -205,8 +229,8 @@ export default function StudentProgress() {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .progress-tab { cursor: pointer; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 15px; border: none; transition: 0.2s; }
-        .progress-tab.active { background: linear-gradient(135deg, #6c63ff, #8b5cf6); color: white; box-shadow: 0 6px 16px rgba(108,99,255,0.25); }
+        .progress-tab { cursor: pointer; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 15px; border: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .progress-tab.active { background: #6c63ff; color: white; box-shadow: 0 4px 12px rgba(108,99,255,0.18); }
         .progress-tab:not(.active) { background: white; color: #374151; border: 1px solid #e5e7eb; }
         .progress-tab:not(.active):hover { background: #f3f0ff; color: #6c63ff; border-color: #ddd6fe; }
         .result-row { display: grid; grid-template-columns: 1fr 120px 80px 90px; align-items: center; gap: 16px; background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px 20px; transition: 0.2s; animation: fadeUp 0.3s ease; }
@@ -242,15 +266,19 @@ export default function StudentProgress() {
           boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={`progress-tab ${tab === t.key ? "active" : ""}`}
-            onClick={() => setTab(t.key)}
-          >
-            {t.icon} {t.label}
-          </button>
-        ))}
+        {tabs.map((t) => {
+          const TabIcon = t.icon;
+          return (
+            <button
+              key={t.key}
+              className={`progress-tab ${tab === t.key ? "active" : ""}`}
+              onClick={() => setTab(t.key)}
+            >
+              <TabIcon size={16} strokeWidth={2.25} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Error */}
@@ -282,10 +310,10 @@ export default function StudentProgress() {
                 gap: 16,
               }}
             >
-              <StatCard icon="📝" label="Opravljeni kvizi" value={stats.total_quizzes} color="#6c63ff" />
-              <StatCard icon="⭐" label="Povprečna ocena" value={`${stats.average_score}%`} color="#f59e0b" />
-              <StatCard icon="🏆" label="Najboljši rezultat" value={`${stats.best_score}%`} color="#10b981" />
-              <StatCard icon="📚" label="Vpisani predmeti" value={stats.subjects_enrolled} color="#60a5fa" />
+              <StatCard icon={FileText} label="Opravljeni kvizi" value={stats.total_quizzes} color="#6c63ff" />
+              <StatCard icon={Star} label="Povprečna ocena" value={`${stats.average_score}%`} color="#f59e0b" />
+              <StatCard icon={Trophy} label="Najboljši rezultat" value={`${stats.best_score}%`} color="#10b981" />
+              <StatCard icon={BookOpen} label="Vpisani predmeti" value={stats.subjects_enrolled} color="#60a5fa" />
             </div>
           )}
 
@@ -344,7 +372,7 @@ export default function StudentProgress() {
             </h2>
             {results.length === 0 ? (
               <EmptyState
-                icon="📋"
+                icon={ClipboardList}
                 title="Ni rezultatov"
                 text="Reši kviz po lekciji in rezultat se bo prikazal tukaj."
               />
@@ -393,7 +421,7 @@ export default function StudentProgress() {
 
           {results.length === 0 ? (
             <EmptyState
-              icon="🎯"
+              icon={Target}
               title="Še ni opravljenih kvizov"
               text="Odpri lekcijo, reši kviz na koncu in rezultat bo prikazan tukaj."
             />
@@ -472,7 +500,7 @@ export default function StudentProgress() {
               }}
             >
               <EmptyState
-                icon="📚"
+                icon={BookOpen}
                 title="Ni vpisanih predmetov"
                 text="Vpiši se v predmet in tvoj napredek se bo prikazal tukaj."
               />
@@ -495,10 +523,10 @@ export default function StudentProgress() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontSize: 18,
+                            color,
                           }}
                         >
-                          📘
+                          <BookOpen size={18} strokeWidth={2.25} />
                         </div>
                         <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{p.subject_name}</h3>
                       </div>
@@ -546,7 +574,7 @@ export default function StudentProgress() {
                         style={{
                           height: "100%",
                           width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${color}, ${color}bb)`,
+                          background: color,
                           borderRadius: 20,
                           transition: "width 0.6s ease",
                         }}

@@ -26,9 +26,7 @@
   display: grid;
   place-items: center;
   padding: 40px 18px;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(20, 184, 166, 0.08)),
-    var(--quiz-bg);
+  background: var(--quiz-bg);
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--quiz-ink);
 }
@@ -246,7 +244,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #2563eb, #14b8a6);
+  background: var(--quiz-primary);
   border-radius: 999px;
   transition: width 0.35s cubic-bezier(.4, 0, .2, 1);
 }

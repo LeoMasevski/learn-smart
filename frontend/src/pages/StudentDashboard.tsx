@@ -11,8 +11,8 @@ import StudentQuizRunner from "../components/student/StudentQuizRunner";
 import SecuritySettings from "../components/auth/SecuritySettings";
 import type { StudentSubject, StudentLesson, LessonVariant, SubjectQuizForStudent } from "../types/student";
 import { getSubjectIcon } from "../utils/subjectIcons";
+import BrandLogo from "../components/common/BrandLogo";
 import {
-  GraduationCap,
   BookOpen,
   Globe,
   BarChart3,
@@ -231,7 +231,7 @@ export default function StudentDashboard() {
             <User className="w-4 h-4" strokeWidth={2.25} /> Profil
           </button>
           <button onClick={() => { if (window.confirm("Ali se res želiš odjaviti?")) { logout(); } setShowMenu(false); }}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-500 text-white text-sm font-bold py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+            className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-violet-700 transition-colors"
           >
             <LogOut className="w-4 h-4" strokeWidth={2.25} /> Odjava
           </button>
@@ -250,7 +250,7 @@ export default function StudentDashboard() {
           <h2 className="font-extrabold text-gray-900 text-lg mb-2">Nisi vpisan v noben predmet</h2>
           <p className="text-gray-400 text-sm mb-6">Oglej si vse razpoložljive predmete in se vpiši.</p>
           <button onClick={goToAllSubjects}
-            className="bg-gradient-to-r from-violet-600 to-purple-500 text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-violet-200"
+            className="bg-violet-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-violet-700 transition-colors"
           >
             <Globe className="inline w-4 h-4 mr-1.5 -mt-0.5" strokeWidth={2.25} /> Oglej si vse predmete
           </button>
@@ -264,7 +264,7 @@ export default function StudentDashboard() {
         <p className="text-gray-400 text-sm mb-6">Izberi predmet in začni s prilagojenim učenjem.</p>
 
         {/* Hero */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-400 rounded-2xl p-7 mb-6 flex items-center justify-between shadow-lg shadow-violet-200">
+        <div className="student-simple-hero relative overflow-hidden bg-white rounded-2xl border border-violet-100 p-7 mb-6 flex items-center justify-between shadow-sm">
           <div className="absolute -right-16 -top-16 w-56 h-56 bg-white/10 rounded-full pointer-events-none" />
           <div className="relative z-10">
             <p className="text-violet-200 text-sm font-semibold mb-1">Dobrodošel nazaj</p>
@@ -369,7 +369,7 @@ export default function StudentDashboard() {
                           className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all ${
                             enrolling
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200 hover:shadow-lg hover:-translate-y-px"
+                              : "bg-violet-600 text-white hover:bg-violet-700"
                           }`}
                         >
                           {enrolling ? (
@@ -573,7 +573,7 @@ export default function StudentDashboard() {
           <button onClick={() => navigateLesson("next")} disabled={!hasNext || loadingVariant}
             className={`px-5 py-3 rounded-xl text-sm font-bold transition-all ${
               hasNext && !loadingVariant
-                ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200 hover:shadow-lg hover:-translate-y-0.5"
+                ? "bg-violet-600 text-white hover:bg-violet-700"
                 : "bg-gray-100 text-gray-300 cursor-not-allowed"
             }`}
           >
@@ -589,8 +589,7 @@ export default function StudentDashboard() {
   const sidebarContent = (
     <>
       <button onClick={() => { goHome(); setSidebarOpen(false); }} className="flex items-center gap-2 text-violet-600 font-extrabold text-lg mb-6 text-left hover:opacity-75 transition-opacity" aria-label="Pojdi na začetno stran">
-        <GraduationCap className="w-5 h-5 shrink-0" strokeWidth={2.25} />
-        LearnSmart
+        <BrandLogo compact className="pointer-events-none" />
       </button>
 
       {!inLesson ? (
@@ -631,7 +630,7 @@ export default function StudentDashboard() {
             return (
               <button key={l.id} onClick={() => { openLesson(l); setSidebarOpen(false); }}
                 className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
-                  active ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white" : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
+                  active ? "bg-violet-600 text-white" : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
                 }`}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
@@ -690,10 +689,7 @@ export default function StudentDashboard() {
           >
             <Menu className="w-5 h-5" strokeWidth={2} />
           </button>
-          <span className="flex items-center gap-1.5 text-violet-600 font-extrabold text-base">
-            <GraduationCap className="w-4 h-4" strokeWidth={2.25} />
-            LearnSmart
-          </span>
+          <BrandLogo compact />
         </header>
 
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6">
@@ -737,7 +733,7 @@ function SidebarBtn({ active, onClick, children }: { active: boolean; onClick: (
     <button onClick={onClick}
       className={`w-full flex items-center text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${
         active
-          ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-200"
+          ? "bg-violet-600 text-white"
           : "text-gray-600 hover:bg-violet-50 hover:text-violet-700"
       }`}
     >

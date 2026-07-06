@@ -47,9 +47,9 @@
 }
 
 .professor-active-menu {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: var(--prof-primary);
   color: white;
-  box-shadow: 0 10px 22px rgba(108, 99, 255, 0.22);
+  box-shadow: none;
 }
 
 .professor-menu-item:hover {
@@ -130,7 +130,8 @@
   display: flex;
   align-items: flex-start;
   padding: 20px;
-  background: linear-gradient(135deg, #6c63ff, #60a5fa, #f0abfc) !important;
+  background: #f5f3ff !important;
+  border-bottom: 1px solid #ddd6fe;
 }
 
 
@@ -172,7 +173,7 @@
 .professor-ai-box button,
 .professor-comment-box button,
 .professor-back-button {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: var(--prof-primary);
   color: white;
   border: none;
   padding: 11px 18px;
@@ -188,10 +189,10 @@
   margin-bottom: 26px;
   padding: 14px 22px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: var(--prof-primary);
   color: white;
   font-weight: 800;
-  box-shadow: 0 10px 24px rgba(108, 99, 255, 0.22);
+  box-shadow: none;
 }
 
 .professor-course-header {
@@ -203,7 +204,7 @@
 }
 
 .professor-course-header > div:first-child {
-  background: linear-gradient(135deg, #ffffff, #f8f7ff);
+  background: #ffffff;
   border: 1px solid var(--prof-border);
   border-radius: 22px;
   padding: 28px;
@@ -223,7 +224,7 @@
 }
 
 .professor-ai-box {
-  background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+  background: #ffffff;
   border: 1px solid #ddd6fe;
   border-radius: 22px;
   padding: 24px;
@@ -311,7 +312,7 @@
 }
 
 .professor-tip-box {
-  background: linear-gradient(135deg, #f5f3ff, #ffffff);
+  background: #ffffff;
   border: 1px dashed #c4b5fd;
   border-radius: 16px;
   padding: 16px;
@@ -438,7 +439,7 @@
 .professor-bar-row div span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #6c63ff, #8b5cf6, #f0abfc);
+  background: var(--prof-primary);
 }
 
 /* за search/filter ако го додадеш во TSX */
@@ -473,7 +474,7 @@
 
 .professor-toolbar button:hover,
 .professor-filter-active {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6) !important;
+  background: var(--prof-primary) !important;
   color: white !important;
 }
 
@@ -500,7 +501,7 @@
 .professor-dropzone {
   margin-top: 18px;
   border: 2px dashed #c4b5fd;
-  background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+  background: #ffffff;
   border-radius: 18px;
   padding: 34px;
   text-align: center;
@@ -528,7 +529,7 @@
 }
 
 .professor-modal-actions button:last-child {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: var(--prof-primary);
   color: white;
 }
 
@@ -662,14 +663,14 @@
 }
 
 .professor-active-menu {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6) !important;
+  background: #6c35ff !important;
   color: white !important;
   padding: 15px 18px !important;
   border-radius: 16px !important;
   font-size: 15px !important;
   font-weight: 700;
   margin-bottom: 10px;
-  box-shadow: 0 10px 24px rgba(108, 99, 255, 0.2);
+  box-shadow: none;
 }
 
 .professor-menu-item {
@@ -693,20 +694,19 @@
   align-items: flex-start;
   justify-content: flex-start;
   padding: 20px;
-  background: linear-gradient(135deg, #6c63ff, #60a5fa, #f0abfc) !important;
+  background: #f5f3ff !important;
 }
 
 .professor-card-icon {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.22);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: white;
-  backdrop-filter: blur(4px);
+  color: #6c35ff;
 }
 
 
@@ -715,7 +715,7 @@
 .professor-accordion-item {
   border: 1px solid #ddd6fe;
   border-radius: 18px;
-  background: linear-gradient(135deg, #ffffff, #faf7ff);
+  background: #ffffff;
   margin-top: 14px;
   overflow: hidden;
 }
@@ -770,7 +770,7 @@
 .professor-dropzone {
   margin-top: 18px;
   border: 2px dashed #c4b5fd;
-  background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+  background: #ffffff;
   border-radius: 18px;
   padding: 34px;
   text-align: center;
@@ -798,7 +798,7 @@
 }
 
 .professor-modal-actions button:last-child {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: #6c35ff;
   color: white;
 }
 
@@ -824,7 +824,7 @@
   width: 54px;
   height: 54px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #6c63ff, #60a5fa);
+  background: #6c35ff;
   color: white;
   display: grid;
   place-items: center;
@@ -842,7 +842,7 @@
 }
 
 .professor-upload-row button {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: #6c35ff;
   color: white;
   border: none;
   padding: 12px 18px;
@@ -899,7 +899,7 @@
 }
 
 .professor-material-row button {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6);
+  background: #6c35ff;
   color: white;
   border: none;
   padding: 11px 20px;

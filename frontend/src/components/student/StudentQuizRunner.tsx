@@ -6,6 +6,7 @@ import type {
   QuizAttempt,
   QuizAttemptAnswer,
 } from "../../types/student";
+import { Award, BookOpen, Check, Lightbulb, Target, TrendingUp, X } from "lucide-react";
 
 type Props = {
   quiz: SubjectQuizForStudent;
@@ -172,16 +173,19 @@ const StudentQuizRunner = ({ quiz, onBack }: Props) => {
     );
 
     const feedback =
-      score >= 90 ? { emoji: "🏆", label: "Odlično!", color: "text-emerald-600" } :
-      score >= 70 ? { emoji: "🎯", label: "Dobro!", color: "text-sky-600" } :
-      score >= 50 ? { emoji: "📚", label: "Solidno, še malo!", color: "text-amber-600" } :
-                   { emoji: "💪", label: "Poskusi znova!", color: "text-rose-600" };
+      score >= 90 ? { icon: Award, label: "Odlično!", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" } :
+      score >= 70 ? { icon: Target, label: "Dobro!", color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100" } :
+      score >= 50 ? { icon: BookOpen, label: "Solidno, še malo!", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" } :
+                   { icon: TrendingUp, label: "Poskusi znova!", color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" };
+    const FeedbackIcon = feedback.icon;
 
     return (
       <div className="max-w-2xl mx-auto w-full">
         {/* Score card */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6 flex flex-col items-center gap-4">
-          <p className="text-4xl">{feedback.emoji}</p>
+          <span className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${feedback.bg} ${feedback.border}`}>
+            <FeedbackIcon className={`h-6 w-6 ${feedback.color}`} strokeWidth={2.1} />
+          </span>
           <h2 className={`text-2xl font-extrabold ${feedback.color}`}>{feedback.label}</h2>
           <ScoreRing score={score} />
           <div className="flex gap-6 text-center">
@@ -221,7 +225,7 @@ const StudentQuizRunner = ({ quiz, onBack }: Props) => {
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
                     isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
                   }`}>
-                    {isCorrect ? "✓" : "✗"}
+                    {isCorrect ? <Check className="h-3.5 w-3.5" strokeWidth={2.4} /> : <X className="h-3.5 w-3.5" strokeWidth={2.4} />}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800 mb-2">{idx + 1}. {q.question}</p>
@@ -238,7 +242,7 @@ const StudentQuizRunner = ({ quiz, onBack }: Props) => {
                                 ? "bg-rose-200 text-rose-700 line-through"
                                 : "bg-white border border-slate-200 text-slate-500"
                             }`}>
-                              {isAnswer && "✓ "}{opt}
+                              {isAnswer && <Check className="mr-1 inline h-3 w-3" strokeWidth={2.4} />}{opt}
                             </span>
                           );
                         })}
@@ -248,7 +252,7 @@ const StudentQuizRunner = ({ quiz, onBack }: Props) => {
                       <p className="text-xs text-slate-400 italic mb-1">Brez odgovora</p>
                     )}
                     {q.explanation && (
-                      <p className="text-xs text-slate-500 italic">💡 {q.explanation}</p>
+                      <p className="flex items-start gap-1.5 text-xs text-slate-500 italic"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} /> {q.explanation}</p>
                     )}
                   </div>
                 </div>
