@@ -37,6 +37,26 @@ function getBearerAccessToken(req: Request) {
   return authHeader.split(" ")[1] || "";
 }
 
+function normalizeOrigin(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return "";
+
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return "";
+  }
+}
+
+function getOAuthFrontendOrigin(req: Request) {
+  const requestOrigin = normalizeOrigin(req.headers.origin);
+
+  if (requestOrigin && env.corsAllowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  return env.frontendOrigin;
+}
+
 function sanitizeMfaFactors(factors: any[] = []) {
   return factors.map((factor) => ({
     id: factor.id,
@@ -353,7 +373,7 @@ router.get("/google/url", authRateLimit, async (req, res) => {
     return res.status(403).json({ message: professorError });
   }
 
-  const callbackUrl = new URL("/auth/callback", env.frontendOrigin);
+  const callbackUrl = new URL("/auth/callback", getOAuthFrontendOrigin(req));
   if (role) callbackUrl.searchParams.set("role", role);
 
   const authClient = createSupabaseAuthClient();

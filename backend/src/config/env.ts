@@ -13,18 +13,30 @@ const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 const nodeEnv = process.env.NODE_ENV || "development";
 const defaultCorsOrigins =
   nodeEnv === "production" ? "" : "http://localhost:3000,http://localhost:5173";
+
+function normalizeOrigin(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return "";
+
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return "";
+  }
+}
+
 const corsAllowedOrigins = (
   process.env.CORS_ALLOWED_ORIGINS ||
   process.env.FRONTEND_ORIGIN ||
   defaultCorsOrigins
 )
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean);
 const defaultFrontendOrigin =
   corsAllowedOrigins.find((origin) => origin.includes("5173")) ||
   corsAllowedOrigins[0] ||
   "http://localhost:5173";
+const configuredFrontendOrigin = normalizeOrigin(process.env.FRONTEND_ORIGIN);
 
 if (missingEnvVars.length > 0) {
   throw new Error(
@@ -41,7 +53,7 @@ export const env = {
   lessonImagesBucket: process.env.SUPABASE_LESSON_IMAGES_BUCKET || "lesson_images",
   geminiApiKey: process.env.GEMINI_API_KEY!,
   corsAllowedOrigins,
-  frontendOrigin: process.env.FRONTEND_ORIGIN || defaultFrontendOrigin,
+  frontendOrigin: configuredFrontendOrigin || defaultFrontendOrigin,
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || "1mb",
   professorRegistrationCode: process.env.PROFESSOR_REGISTRATION_CODE?.trim() || "",
 };
