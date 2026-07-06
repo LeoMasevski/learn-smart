@@ -1,7 +1,5 @@
 import { useState } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
   BookOpen,
   Check,
   CheckCircle2,
@@ -752,16 +750,14 @@ const ProfessorQuizModal = ({ subjectId, lessons, onClose, onCreated }: Props) =
                 disabled={selectedLessonIds.size === 0}
                 className="rounded-2xl bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
-                Naprej
-                <ArrowRight className="w-4 h-4" strokeWidth={2.25} />
+                Naprej →
               </button>
             </>
           )}
           {step === "config" && (
             <>
               <button onClick={() => setStep("lessons")} className="rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition inline-flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" strokeWidth={2.25} />
-                Nazaj
+                ← Nazaj
               </button>
               <button
                 onClick={handleConfigNext}
