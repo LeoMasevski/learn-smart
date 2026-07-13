@@ -373,7 +373,7 @@ router.get("/google/url", authRateLimit, async (req, res) => {
     return res.status(403).json({ message: professorError });
   }
 
-  const callbackUrl = new URL("/auth/callback", getOAuthFrontendOrigin(req));
+  const callbackUrl = new URL("/", getOAuthFrontendOrigin(req));
   if (role) callbackUrl.searchParams.set("role", role);
 
   const authClient = createSupabaseAuthClient();
